@@ -1,27 +1,314 @@
-# Statemets and expressions
+# Statements and expressions
+
+Eter is an expression-oriented language, meaning that most semantic constructs within the language evaluate to a value. To understand the syntactic and semantic structure of a program, it is fundamental to distinguish between **statements** and **expressions**:
+
+* **Expressions** are combinations of variables, literals, operators, and function calls that are evaluated by the compiler to compute and return a resulting value. Every expression has a well-defined type. Because they yield values, expressions can be arbitrarily nested and composed to build more complex logic.
+* **Statements** are instructions that dictate the control flow and state mutations of a program. They do not evaluate to a usable value (conceptually, they evaluate to the unit type `()`). Their primary purpose is to execute side effects, such as introducing new bindings into a scope, modifying existing memory locations, or defining items.
+
+In short: expressions *compute* values, while statements *perform* actions.
+
+```rust
+fn main() {
+    // STATEMENT: A `let` binding performs the action of allocating 
+    // a local variable and assigning it a value. It does not yield a value.
+    let a: i32 = 10;
+    
+    // STATEMENT: Another action.
+    let b: i32 = 20;
+
+    // EXPRESSION: Evaluates to a value (30).
+    // Notice the lack of a semicolon at the end of the block, 
+    // allowing this value to be implicitly returned.
+    a + b
+}
+```
+
+Expressions and statements are intrinsically linked: you can convert an expression into an **expression statement** by appending a semicolon `;`. This forces the compiler to evaluate the expression solely for its side effects (e.g., executing a function call) while explicitly discarding any resulting value.
 
 ## Statements
+
+Statements are executed in sequence within a block. Eter supports several types of statements, including item declarations, assignments, and expression statements.
+
 ### Statement terminator
+
+Statements are generally terminated by a semicolon `;`. The semicolon indicates the end of a statement and separates it from the next one.
+
+> [!NOTE]
+> Some statements, such as those ending with a block expression (e.g., `if`, `while`, `match`), do not require a trailing semicolon unless they are part of a larger expression or assignment.
+
 ### Assignment statements
-### Item declaration statements
+
+An assignment statement evaluates an expression and binds its value to a memory location represented by a place expression (such as a variable, a struct field, or an array index).
+
+The syntax for an assignment statement uses the `=` operator or a compound assignment operator (e.g., `+=`, `-=`, `*=`).
+
+| Type | Example | Description |
+| :--- | :--- | :--- |
+| **Basic Assignment** | `x = 5;` | Assigns the value `5` to the variable `x`. |
+| **Compound Assignment** | `y += 2;` | Adds `2` to `y` and assigns the result back to `y`. |
+| **Field Assignment** | `point.x = 10;` | Assigns `10` to the field `x` of `point`. |
+
+Assignment statements perform an action and do not evaluate to a value, meaning they cannot be chained like `a = b = c`.
+
+### Item declaration statements (`let`)
+
+Item declaration statements introduce new items into the current scope. The most common item declaration within a block is the `let` statement, which binds a new local variable by **always specifying its name and type**. Variables are immutable by default unless marked with the `mut` keyword (more in the [Memory Model Chapter](./memory-model.md)).
+
+| Declaration | Description | Example |
+| :--- | :--- | :--- |
+| **Variable Binding** | Binds a value to a new local variable, with a required type annotation. | `let name: String = "Alice";` |
+| **Mutable Binding** | Binds a value to a mutable local variable. | `let mut count: i32 = 0;` |
+| **Constant Declaration** | Defines a compile-time constant. | `const MAX_VAL: u32 = 100;` |
+
+#### Nested Items and Scoping
+
+Items (such as `const`,  or nested `let` variables) can be declared inside any block scope. This allows you to restrict the visibility of an item strictly to the block it was declared in, keeping the outer namespace clean.
+
+Nested items can be declared inside regular function blocks, unnamed (anonymous) scopes `{ ... }`, and `unsafe { ... }` blocks. 
+
+```rust
+fn main() {
+    let outer_val: i32 = 10;
+
+    // 1. Unnamed Block Scope
+    // Useful for isolating variables or helper functions 
+    // that are only needed for a short calculation.
+    {
+        let inner_val: i32 = 20;
+        const LOCAL_MULTIPLIER: i32 = 5;
+    }
+
+    let result: i32 = inner_val * LOCAL_MULTIPLIER;
+    // Error! `inner_val` and `LOCAL_MULTIPLIER`
+    // are out of scope and cannot be accessed here.
+
+    // 2. Unsafe Block Scope
+    // Used to wrap operations that bypass some of the compiler's safety checks.
+    // Like any block, you can declare local items inside it.
+    unsafe {
+        // Declaring a local item inside an unsafe block
+        let pointer: ptr<i32> = ptr::new(outer_val);
+        let dereferenced: i32 = ptr::value(pointer);
+    }
+    // `pointer` is out of scope here.
+}
+```
+
 ### Expression statements
+
+An expression statement is an expression that is evaluated for its side effects, followed by a semicolon. The value produced by the expression is discarded.
+
+Common examples include function calls and method invocations.
+
+| Type | Example | Description |
+| :--- | :--- | :--- |
+| **Function Call** | `print("Hello");` | Executes the function and discards the return value. |
+| **Member Function Invocation** | `list.append(1);` | Executes a member function for side effects. |
+
+When a block-based expression (such as `if`, `match`, or a simple `{ ... }` block) is used as an expression statement, the trailing semicolon is optional.
 
 ---
 
 ## Expressions
+
+An expression evaluates to a value and can be used in most places where a value is expected. Expressions can be nested and combined.
+
 ### Literal expressions
+
+A literal expression consists of a literal token and evaluates to the value represented by that token.
+
+```rust
+let age: i32 = 42;              // Integer literal
+let name: str = "Alice";       // String literal
+let is_valid: bool = true;      // Boolean literal
+let letter: char = 'A';         // Character literal
+```
+
 ### Path expressions (::)
+
+A path expression refers to an item, variable, or constant in the current scope or another module using the path separator `::`.
+
+```rust
+let max_val: u32 = std::u32::MAX;    // Fully qualified path to a constant
+let math_pi: f64 = math::PI;         // Path to a module item
+```
+
 ### Block expressions
+
+A block expression is a sequence of statements enclosed in braces `{}`. The value of a block expression is the value of its final expression (the one without a trailing semicolon). If the block ends with a statement (with a semicolon), it evaluates to `()`.
+
+```rust
+let y: i32 = {
+    let x: i32 = 5;
+    x + 1 // No semicolon: this is the return value of the block
+}; // y is now 6
+```
+
 ### Operator expressions
+
+Operator expressions apply unary or binary operators to operands.
+
+```rust
+let sum: i32 = 10 + 20;         // Binary arithmetic operator
+let is_false: bool = !true;      // Unary logical NOT operator
+let flag: bool = (a == b);       // Binary comparison operator
+```
+
 ### Grouped expressions
+
+Parentheses `()` can be used to explicitly group expressions and control the order of evaluation, overriding default operator precedence.
+
+```rust
+let result: i32 = (2 + 3) * 4;  // Evaluates to 20 instead of 14
+```
+
 ### Array and index expressions
+
+Array expressions create fixed-size collections of elements. Index expressions retrieve elements from an array or slice using brackets `[]`.
+
+```rust
+let arr: i32[3] = [1, 2, 3];       // Array expression (list of elements)
+let zeros: i32[5] = [0; 5];        // Array expression (repeated value: [0, 0, 0, 0, 0])
+let first: i32 = arr[0];             // Index expression (accessing the first element)
+```
+
 ### Tuple and index expressions
+
+Tuple expressions create ordered, fixed-size, heterogeneous collections. Tuple elements are accessed using dot `.` notation with an integer index.
+
+```rust
+let point: (i32, i32, str) = (10, 20, "label");  // Tuple expression
+let x: i32 = point.0;                             // Tuple index expression (gets 10)
+let desc: str = point.2;                         // Tuple index expression (gets "label")
+```
+
 ### Struct expressions
+
+Struct expressions create instances of user-defined struct types. They specify the name of the struct and provide values for its fields.
+
+```rust
+let p: Point = Point { x: 10, y: 20 }; // Struct expression
+```
+
 ### Call expressions
+
+Call expressions invoke functions or closures. They consist of an expression that evaluates to a callable entity, followed by a parenthesized list of arguments.
+
+```rust
+let result: i32 = add(5, 3);         // Function call
+let length: usize = "hello".len();   // Member function call
+```
+
 ### Field access expressions
+
+Field access expressions retrieve the value of a specific field from a struct or union using the dot `.` operator.
+
+```rust
+let my_x: i32 = p.x;                 // Accesses the 'x' field of the struct 'p'
+```
+
 ### Loop expressions
+
+Loop expressions are used to execute a block of code multiple times. Because they are expressions, they can optionally evaluate to a value (e.g., by using the `break` keyword).
+
+Eter supports both `for` and `while` loops.
+
+```rust
+// loop expression returning a value
+let mut counter: i32 = 0;
+let final_value: i32 = while true {
+    counter += 1;
+    if counter == 10 {
+        break counter * 2; // Returns 20 from the loop expression
+    }
+};
+
+// while loop
+let mut n: i32 = 5;
+while n > 0 {
+    n -= 1;
+}
+
+// for loop
+
+for( i: i32 = 0; i < 10; i++){
+        if (i % 2 == 0){
+            print(i);
+        }
+}
+
+```
+
 ### If expressions
+
+An `if` expression evaluates a boolean condition and executes the corresponding block. If an `else` branch is provided, the `if` expression can evaluate to a value, provided both branches return the same type.
+
+```rust
+let condition: bool = true;
+
+// if used as an expression to assign a value
+let result: str = if condition {
+    "Success"
+} else {
+    "Failure"
+};
+
+// if used for side effects (evaluates to ())
+if result == "Success" {
+    print("Everything is fine");
+}
+```
+
 ### Match expressions
- -> Includere i match patterns
+
+A `match` expression provides pattern matching. It compares a value against a series of patterns and executes the block corresponding to the first matching pattern. Like `if` expressions, `match` blocks can return a value if all branches resolve to the same type.
+
+Patterns can include literals, variables, and the catch-all wildcard `_`.
+
+```rust
+let status_code: i32 = 404;
+
+let message: str = match status_code {
+    200 => "OK",
+    404 => "Not Found",
+    500 => "Internal Server Error",
+    // The underscore `_` acts as a wildcard, catching any unhandled values
+    _ => "Unknown Error",
+};
+```
+
+You can also use patterns to destructure types or bind variables:
+
+```rust
+let coords: (i32, i32) = (0, 10);
+
+match coords {
+    (0, 0) => print("Origin"),
+    (x, 0) => print("On the X axis"),
+    (0, y) => print("On the Y axis"),
+    (x, y) => print("Somewhere else"),
+}
+```
+
 ### Return expressions
+
+A `return` expression immediately terminates the current function or closure and evaluates to a value that is passed back to the caller. A `return` expression without a value implies `return ()`.
+
+```rust
+fn get_positive(val: i32) -> i32 {
+    if val < 0 {
+        return 0; // Early return expression
+    }
+    
+    val // Implicit return expression (no semicolon)
+}
+```
+
 ### Underscore expressions
+
+The underscore `_` can be used as an expression pattern to explicitly discard a value. This is useful when calling a function for its side effects, but explicitly acknowledging that you are choosing not to use its return value. It is also heavily used in `match` blocks as a wildcard (as shown above).
+
+```rust
+// Discard the result of a function that returns a value
+let _: i32 = compute_heavy_task();
+```
