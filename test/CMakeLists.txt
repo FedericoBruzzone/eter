@@ -16,12 +16,14 @@ endif()
 find_program(ETER_LIT_EXECUTABLE
   NAMES llvm-lit lit
   HINTS "${LLVM_TOOLS_BINARY_DIR}" "${LLVM_TOOL_BIN_DIR}"
+  PATHS "${LLVM_TOOL_BIN_DIR}"
   DOC "Path to the lit test runner"
 )
 
 find_program(FILECHECK_EXECUTABLE
   NAMES FileCheck filecheck
   HINTS "${LLVM_TOOLS_BINARY_DIR}" "${LLVM_TOOL_BIN_DIR}"
+  PATHS "${LLVM_TOOL_BIN_DIR}"
   DOC "Path to the FileCheck utility"
 )
 
