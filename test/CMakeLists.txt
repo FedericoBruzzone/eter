@@ -13,7 +13,7 @@ find_program(ETER_LIT_EXECUTABLE
 )
 
 find_program(FILECHECK_EXECUTABLE
-  NAMES FileCheck
+  NAMES FileCheck filecheck llvm-FileCheck llvm-filecheck
   HINTS "${LLVM_TOOLS_BINARY_DIR}"
   DOC "Path to the FileCheck utility"
 )
@@ -23,7 +23,7 @@ if(NOT ETER_LIT_EXECUTABLE)
 endif()
 
 if(NOT FILECHECK_EXECUTABLE)
-  message(FATAL_ERROR "FileCheck was not found. Install LLVM tools or add them to PATH.")
+  message(FATAL_ERROR "FileCheck was not found. Install the LLVM tools package or add FileCheck to PATH.")
 endif()
 
 message(STATUS "Found lit: ${ETER_LIT_EXECUTABLE}")
