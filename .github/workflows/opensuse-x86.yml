@@ -25,6 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
+        shell: bash
         run: |
           zypper --non-interactive refresh
           zypper --non-interactive install --no-recommends \
@@ -38,16 +39,21 @@ jobs:
           pip3 install lit --break-system-packages
           echo "${LLVM_PREFIX}/bin" >> "$GITHUB_PATH"
       - name: Build eter
+        shell: bash
         env:
           CC: ${{ matrix.compiler.CC }}
           CXX: ${{ matrix.compiler.CXX }}
         run: |
+          export PATH="${LLVM_PREFIX}/bin:$PATH"
           mkdir build && cd build
           cmake -DCMAKE_PREFIX_PATH="${LLVM_PREFIX}" \
+                -DLLVM_TOOLS_BINARY_DIR="${LLVM_PREFIX}/bin" \
                 -DCMAKE_BUILD_TYPE=${{ matrix.type }} \
                 -G Ninja ../
           ninja -j2
       - name: Run tests
+        shell: bash
         run: |
+          export PATH="${LLVM_PREFIX}/bin:$PATH"
           cd build
           lit -va ./test/
