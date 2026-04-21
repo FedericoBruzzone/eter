@@ -51,8 +51,10 @@ jobs:
           export PATH="${LLVM_PREFIX}/bin:${PATH}"
           LLVM_CMAKE_DIR="${LLVM_PREFIX}/lib/cmake/llvm"
           MLIR_CMAKE_DIR="${LLVM_PREFIX}/lib/cmake/mlir"
-          FILECHECK_PATH="$(command -v FileCheck || command -v FileCheck-22 || command -v llvm-FileCheck || command -v llvm-FileCheck-22 || command -v filecheck || command -v filecheck-22 || true)"
-          LIT_PATH="$(command -v llvm-lit || command -v llvm-lit-22 || command -v lit || true)"
+          FILECHECK_PATH="$(find "${LLVM_PREFIX}" -type f \( -iname 'filecheck*' -o -iname 'FileCheck*' -o -iname 'llvm-FileCheck*' -o -iname 'llvm-filecheck*' \) | head -n1 || true)"
+          LIT_PATH="$(find "${LLVM_PREFIX}" -type f \( -iname 'llvm-lit*' -o -iname 'lit' \) | head -n1 || true)"
+          echo "Found FILECHECK_PATH=${FILECHECK_PATH}"
+          echo "Found LIT_PATH=${LIT_PATH}"
           if [ -n "${FILECHECK_PATH}" ]; then
             LLVM_TOOLS_BIN_DIR="$(dirname "${FILECHECK_PATH}")"
           else
