@@ -43,12 +43,57 @@ find_program(FILECHECK_EXECUTABLE
   DOC "Path to the FileCheck utility"
 )
 
+if(NOT FILECHECK_EXECUTABLE)
+  set(_FILECHECK_CANDIDATE_NAMES
+    FileCheck
+    FileCheck-22
+    filecheck
+    filecheck-22
+    llvm-FileCheck
+    llvm-filecheck
+  )
+
+  foreach(_candidate_dir IN LISTS LLVM_TOOL_BIN_DIR)
+    foreach(_candidate_name IN LISTS _FILECHECK_CANDIDATE_NAMES)
+      set(_candidate_path "${_candidate_dir}/${_candidate_name}")
+      if(EXISTS "${_candidate_path}" AND NOT IS_DIRECTORY "${_candidate_path}")
+        set(FILECHECK_EXECUTABLE "${_candidate_path}")
+        break()
+      endif()
+    endforeach()
+    if(FILECHECK_EXECUTABLE)
+      break()
+    endif()
+  endforeach()
+
+  if(NOT FILECHECK_EXECUTABLE AND DEFINED LLVM_ROOT_DIR)
+    file(GLOB_RECURSE _FILECHECK_FALLBACK_CANDIDATES
+      LIST_DIRECTORIES FALSE
+      "${LLVM_ROOT_DIR}/*FileCheck*"
+      "${LLVM_ROOT_DIR}/*filecheck*"
+    )
+
+    foreach(_candidate_path IN LISTS _FILECHECK_FALLBACK_CANDIDATES)
+      get_filename_component(_candidate_name "${_candidate_path}" NAME)
+      if(_candidate_name IN_LIST _FILECHECK_CANDIDATE_NAMES)
+        set(FILECHECK_EXECUTABLE "${_candidate_path}")
+        break()
+      endif()
+    endforeach()
+  endif()
+endif()
+
 if(NOT ETER_LIT_EXECUTABLE)
   message(FATAL_ERROR "lit was not found. Install lit or add it to PATH.")
 endif()
 
 if(NOT FILECHECK_EXECUTABLE)
-  message(FATAL_ERROR "FileCheck was not found. Install LLVM tools or add them to PATH.")
+  message(FATAL_ERROR
+    "FileCheck was not found. Tried names: FileCheck, FileCheck-22, filecheck, filecheck-22, llvm-FileCheck, llvm-filecheck. "
+    "Searched directories: ${LLVM_TOOL_BIN_DIR}. "
+    "LLVM_ROOT_DIR: ${LLVM_ROOT_DIR}. "
+    "Install LLVM tools package for your distro or pass -DLLVM_TOOLS_BINARY_DIR=<dir-containing-FileCheck>."
+  )
 endif()
 
 message(STATUS "Found lit: ${ETER_LIT_EXECUTABLE}")
