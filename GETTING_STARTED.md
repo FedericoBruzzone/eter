@@ -80,6 +80,7 @@ On **ArchLinux** all packages can be easily installed using the **pacman** packa
 sudo pacman -S ninja cmake llvm clang python-pip
 yay -S --needed mlir 
 python3 -m pip install --user lit
+```
 You can verify the install with:
 
 ```bash
