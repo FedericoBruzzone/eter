@@ -12,9 +12,6 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     container: fedora:42
-    env:
-      LLVM_VERSION: "22.1.2"
-      LLVM_PREFIX: /opt/llvm-22
     strategy:
       fail-fast: false
       matrix:
@@ -28,38 +25,34 @@ jobs:
         run: |
           dnf install -y --setopt=install_weak_deps=False \
             ca-certificates cmake ninja-build gcc gcc-c++ \
-            llvm \
-            curl libxml2-devel \
+            dnf-plugins-core libxml2-devel \
             python3 python3-pip python3-setuptools \
             xz diffutils zlib-devel ncurses-libs libffi-devel
-          curl -fSL --retry 5 --retry-delay 5 --retry-max-time 600 --continue-at - \
-            -o "LLVM-${LLVM_VERSION}-Linux-X64.tar.xz" \
-            "https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/LLVM-${LLVM_VERSION}-Linux-X64.tar.xz"
-          if [ "$(stat -c %s "LLVM-${LLVM_VERSION}-Linux-X64.tar.xz")" -lt 1900000000 ]; then
-            echo "Downloaded LLVM tarball is too small or incomplete" >&2
-            ls -lh "LLVM-${LLVM_VERSION}-Linux-X64.tar.xz" >&2
-            exit 1
-          fi
-          tar xf "LLVM-${LLVM_VERSION}-Linux-X64.tar.xz"
-          mv "LLVM-${LLVM_VERSION}-Linux-X64" "${LLVM_PREFIX}"
-          ls -la "${LLVM_PREFIX}/bin" | grep -i -E 'filecheck|FileCheck|llvm-filecheck|llvm-FileCheck' || true
+          cat > /etc/yum.repos.d/fedora-rawhide.repo <<'EOF'
+          [fedora-rawhide]
+          name=Fedora Rawhide
+          baseurl=https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/
+          enabled=1
+          gpgcheck=0
+          EOF
+          dnf --setopt=clean_requirements_on_remove=1 --enablerepo=fedora-rawhide install -y \
+            llvm llvm-devel clang mlir mlir-devel
           pip3 install lit --break-system-packages
       - name: Build eter
         env:
           CC: ${{ matrix.compiler.CC }}
           CXX: ${{ matrix.compiler.CXX }}
         run: |
-          export PATH="${LLVM_PREFIX}/bin:${PATH}"
-          LLVM_CMAKE_DIR="${LLVM_PREFIX}/lib/cmake/llvm"
-          MLIR_CMAKE_DIR="${LLVM_PREFIX}/lib/cmake/mlir"
-          FILECHECK_PATH="$(find "${LLVM_PREFIX}" -type f \( -iname 'filecheck*' -o -iname 'FileCheck*' -o -iname 'llvm-FileCheck*' -o -iname 'llvm-filecheck*' \) | head -n1 || true)"
-          LIT_PATH="$(find "${LLVM_PREFIX}" -type f \( -iname 'llvm-lit*' -o -iname 'lit' \) | head -n1 || true)"
+          LLVM_CMAKE_DIR="$(llvm-config --cmakedir)"
+          MLIR_CMAKE_DIR="${LLVM_CMAKE_DIR%/llvm}/mlir"
+          FILECHECK_PATH="$(command -v FileCheck || command -v FileCheck-22 || command -v llvm-FileCheck || command -v llvm-FileCheck-22 || command -v filecheck || command -v filecheck-22 || true)"
+          LIT_PATH="$(command -v llvm-lit || command -v llvm-lit-22 || command -v lit || true)"
           echo "Found FILECHECK_PATH=${FILECHECK_PATH}"
           echo "Found LIT_PATH=${LIT_PATH}"
           if [ -n "${FILECHECK_PATH}" ]; then
             LLVM_TOOLS_BIN_DIR="$(dirname "${FILECHECK_PATH}")"
           else
-            LLVM_TOOLS_BIN_DIR="${LLVM_PREFIX}/bin"
+            LLVM_TOOLS_BIN_DIR="/usr/bin"
           fi
           mkdir build && cd build
           EXTRA_CMAKE_ARGS=""
