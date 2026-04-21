@@ -39,12 +39,12 @@ jobs:
         env:
           CC: ${{ matrix.compiler.CC }}
           CXX: ${{ matrix.compiler.CXX }}
-          PATH: ${{ env.LLVM_PREFIX }}/bin:${{ env.PATH }}
         run: |
+          export PATH="${LLVM_PREFIX}/bin:${PATH}"
           LLVM_CMAKE_DIR="${LLVM_PREFIX}/lib/cmake/llvm"
           MLIR_CMAKE_DIR="${LLVM_PREFIX}/lib/cmake/mlir"
           FILECHECK_PATH="$(command -v FileCheck || command -v FileCheck-22 || true)"
-          if [[ -n "${FILECHECK_PATH}" ]]; then
+          if [ -n "${FILECHECK_PATH}" ]; then
             LLVM_TOOLS_BIN_DIR="$(dirname "${FILECHECK_PATH}")"
           else
             LLVM_TOOLS_BIN_DIR="${LLVM_PREFIX}/bin"
@@ -57,8 +57,7 @@ jobs:
                 -G Ninja ../
           ninja -j2
       - name: Run tests
-        env:
-          PATH: ${{ env.LLVM_PREFIX }}/bin:${{ env.PATH }}
         run: |
+          export PATH="${LLVM_PREFIX}/bin:${PATH}"
           cd build
           lit -va ./test/
