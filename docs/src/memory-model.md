@@ -3,6 +3,7 @@
 ## Mutable Value Semantics (MVS) 
 
 Racordon _et al._ introduced the [Mutable Value Semantics] (MVS) as a new memory model for high-performance programming languages.[^1]
+A key feature is that a value has _value semantics_, meaning that it is an independent entity without observable identity and with copy-by-value semantics.
 Both [Swift] and [Hylo] (formerly Val) adopt this model in their design, but in different ways.  The former tries to make values look like safe references, while the latter treats everything as a pure value, eliminating the need for a Garbage Collector (GC) or Atomic Reference Counting (ARC) altogether.
 In addition to the resources mentioned above,[^1] we recommend reading [The Mutable Value Semantics (MVS): A Personal Study], the study that led to the development of the semantic model on which Eter is based.
 
@@ -11,53 +12,91 @@ In addition to the resources mentioned above,[^1] we recommend reading [The Muta
 ## Eter's memory model
 
 Eter embraces the MVS as a core part of its memory model, but introduces a unique twist by introducing the concept of **regimes** to manage how values are stored, accessed, and mutated in memory.
-A regime implies:
-- **Stability**: A regime defines a _persistent semantic context_ under which a value operates.
-- **Internal Coherence**: A regime enforces a _consistent set of invariants_ that all operations must respect.
-- **Governance**: A regime determines the _allowed transformations_ on values and their cost model.
-
 In Eter, values conceptually denote independent entities, but may share or transfer underlying memory locations depending on the regime.
-Values can be transferred between different regimes that govern their ownership, mutability, and memory semantics.
-This eliminates the need for a GC or ARC and allows for efficient memory usage while maintaining the benefits of value semantics.
+Values can be transferred between different regimes that govern their ownership, mutability, and memory semantics, which eliminates the need for a GC or ARC and allows for efficient memory usage while maintaining the benefits of value semantics.
 
 
 ### The building blocks of memory
 
-**Storage Unit.**  &#8193; The basic storage element in Eter's memory model is the byte, which is made up of 8 consecutive bits. An Eter program's memory is composed of one or more blocks of adjacent bytes, and each byte is identified by a distinct address.
+#### Storage Unit
+
+The basic storage element in Eter's memory model is the byte, which is made up of 8 consecutive bits. An Eter program's memory is composed of one or more blocks of adjacent bytes, and each byte is identified by a distinct address.
 
 
-**Memory Location.**  &#8193; A _memory location_ is a contiguous sequence of bytes that can be read from or written to as a unit. 
+#### Memory Location
+A _memory location_ is a contiguous sequence of bytes that can be read from or written to as a unit.
 Each memory location is sized according to the type of value it holds, and it has a unique address that identifies its starting byte in memory.
 Two memory locations are considered _disjoint_ if they do not overlap in memory, meaning that they do not share any bytes. 
 A memory location `ml1` _contains_ another memory location `ml2` if the bytes of `ml2` are a subset of the bytes of `ml1`.
 A _sub-memory location_ is a memory location that is contained within another memory location. A location is called _root memory location_ if it is not a sub-memory location of any other location.
 Eter's memory model ensures that all memory locations are either disjoint or one contains the other, which allows for efficient memory management and prevents issues related to aliasing and shared mutable state.
 
-### Memory location lifetime
+**Memory location lifetime**
 
 > [!WARNING]
 > TODO
 
+#### Values
+
+A _value_ is an abstract semantic entity that represents computational content. Values are independent of memory and do not inherently have identity or location. They exist in a pure semantic domain and are immutable in their abstract form. A value, as such, does not carry any notion of regime, storage, or mutability.
+
+
+#### Value Instances
+
+A _value instance_ is the runtime realization of a value under execution context. It represents a concrete occurrence of a value during program execution, potentially materialized in memory.
+Value instances are the actual carriers of runtime semantics, and it is at this level that regimes apply.
+A value instance may:
+1. be materialized in a memory location (e.g., a stack slot, a heap object, or a register),
+2. be copied, moved, or projected,
+3. evolve under regime transformations.
+Thus, regimes are properties of value instances, not of abstract values.
+
+#### Variables
+
+A _variable_ is a named syntactic entity that refers to a binding. Variables exist at the program (static) level and serve as the interface between the programmer and the semantic runtime system.
+A variable may denote something that is governed by a regime, but it is not itself the carrier of the regime.
+
+#### Bindings
+
+A _binding_ is the association between a variable and a value instance or a memory location.
+Bindings are created by evaluation rules (e.g., let-binding, assignment, parameter passing) and mediate access to runtime entities.
+A binding may be influenced by the regime (e.g., whether it refers to a moved value, a shared location, or a projected view), but it is not itself the subject of a regime.
+
+
 ### The Eter's Regimes
 
-Different types of variables in Eter have different ownership, mutability, and memory semantics, which determine how they interact with memory and how they can be used in the program. 
-Eter's memory model is based on three main types of variables: `let`, `let mut`, and `let proj`.
-Each of these variable defines a different **regime** for how values are owned, mutated, and accessed in memory.
-One can think of these **regimes** as governing how values flow through the program and how they are stored and accessed in memory.
+Eter’s semantics is based on three primary **regimes** for value instances: `let`, `let mut`, and `let proj`.
+When a value is brought into execution, it gives rise to a value instance, which is associated with exactly one regime at any given time.
+This regime may change during the lifetime of the value instance, subject to the rules of the system.
+A regime defines constraints over three orthogonal aspects of value instance behavior:
+- **Ownership**: how the value is owned and whether it can be shared or moved.
+- **Mutability**: whether the value can be modified after initialization.
+- **Storage behavior**: the rules governing storage, lifetime, and access behavior.
+
+In this sense, a regime specifies the operational contract under which a value is interpreted in the program.
+
+Each regime induces:
+- **Stability**: a _persistent semantic context_ under which the value operates.
+- **Internal Coherence**: a _set of invariants_ that all operations on the value must respect.
+- **Governance**: the _permitted transfers_ between different regimes and the associated cost model.
+
+At any given moment, each value can be associated with **one and only one** regime.
+One can think of these **regimes** as governing how value instances flow through the program and how they are stored and accessed in memory.
 
 The Eter programming language uses these regimes consistently.
-It means that the same rules apply to all types of values, whether they are simple scalars, complex structs, or even functions.
-Additionally, the semantic is consistent across all operations, including variable assignment, function calls, and field access.
+It means that the same rules apply to all types of value instance, whether they are simple scalars, complex structs, or even functions.
+Additionally, the semantic is consistent across all operations, including variable assignment, field access, and passing arguments to functions.
+This ensures simplicity and predictability in the language.
 
 ##### Matrix of value transfer semantics
 
 | ↓ to \ from → | `let x = 𝓿` | `let mut x = 𝓿` |  `let proj x = 𝓿` |
 |-|-|-|-|
-| `let  y = x`      | $O(1)$ ✅ (Alias)        | $O(1)$ ✅ (Move) | ❌ (Forbidden) |
-| `let mut  y = x`  | $O(N)$ ⚠️ (Copy)         | $O(1)$ ✅ (Move) | $O(1)$ ✅ (Extract/Refill) |
-| `let proj y = &x` | ❌ (Needs `mut` source)  | $O(1)$ ✅ (Link) | $O(1)$ ✅ (Re-Link) |
-| `&x = 𝓿'`         | ❌ (Forbidden)           | ✅ (In-place)    | ✅ (In-place) |
-| `x = 𝓿'`          | TODO  | TODO   | TODO |
+| `let  y = x`      | \\(O(1)\\) ✅ (Alias)    | \\(O(1)\\) ✅ (Move) | \\(O(1)\\) ✅ (Extract/Refill) |
+| `let mut  y = x`  | ❌ (Forbidden)           | \\(O(1)\\) ✅ (Move) | \\(O(1)\\) ✅ (Extract/Refill) |
+| `let proj y = &x` | ❌ (Needs `mut` source)  | \\(O(1)\\) ✅ (Link) | \\(O(1)\\) ✅ (Re-Link) |
+<!-- | `&x = 𝓿'`         | ❌ (Forbidden)           | ✅ (In-place)    | ✅ (In-place) |
+| `x = 𝓿'`          | TODO  | TODO   | TODO | -->
 
 
 
