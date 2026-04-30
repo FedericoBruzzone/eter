@@ -6,7 +6,6 @@
 #
 #===----------------------------------------------------------------------===#
 
-# Add the Base library unit tests (LLVM style: one executable, multiple .cpp files)
 add_unittest(EterUnitTests EterBaseTests
   SpanTest.cpp
   SourceBufferTest.cpp

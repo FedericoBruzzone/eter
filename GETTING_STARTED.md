@@ -293,35 +293,6 @@ cmake --build build --target check-eter-driver
 cmake --build build --target check-eter-lexer
 ```
 
-### Test Directory Structure
-
-```
-unittests/
-├── Base/           # Unit tests for Base library (consolidated)
-│   ├── CMakeLists.txt
-│   ├── EterBaseTests.cpp        # Main test runner
-│   ├── SpanTest.cpp
-│   ├── SourceBufferTest.cpp
-│   ├── SourceManagerTest.cpp
-│   └── DiagnosticEngineTest.cpp
-├── Driver/         # Unit tests for Driver library (consolidated)
-│   ├── CMakeLists.txt
-│   ├── EterDriverTests.cpp      # Main test runner
-│   ├── VersionTest.cpp
-│   └── DriverTest.cpp
-└── Lexer/         # Unit tests for Lexer library
-    ├── CMakeLists.txt
-    └── LexerTest.cpp
-
-test/
-├── Driver/         # Lit tests for driver functionality
-│   ├── lit.local.cfg
-│   ├── version.smoke
-│   └── help.smoke
-└── Lexer/         # Lit tests for lexer (when available)
-    └── lit.local.cfg
-```
-
 ### Adding New Tests
 
 **Unit tests**: Add test code to the appropriate `.cpp` file in `unittests/<Library>/`.

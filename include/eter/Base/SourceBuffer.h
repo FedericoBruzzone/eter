@@ -51,10 +51,10 @@ public:
 
   /// Create a `SourceBuffer` from a string (useful for testing).
   /// \param Content The string content to load into the buffer.
-  /// \param Name An optional name for the buffer (default: "test-buffer").
+  /// \param Name An optional name for the buffer (default: "buffer").
   /// \returns A source buffer containing the provided string.
   static SourceBuffer makeFromString(llvm::StringRef Content,
-                                    llvm::StringRef Name = "test-buffer");
+                                    llvm::StringRef Name = "buffer");
 
   /// Return the name of the source file associated with this buffer.
   llvm::StringRef getFilename() const;

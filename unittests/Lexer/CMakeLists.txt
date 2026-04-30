@@ -15,7 +15,6 @@ target_link_libraries(LexerTest PRIVATE
   EterLexer
 )
 
-# Add include directories for the test - mark LLVM as system to suppress warnings
 target_include_directories(LexerTest PRIVATE
   ${CMAKE_SOURCE_DIR}/include
 )
@@ -26,4 +25,4 @@ target_include_directories(LexerTest SYSTEM PRIVATE
 )
 
 # Disable -Werror for tests to avoid LLVM header warnings
-set_property(TARGET LexerTest APPEND PROPERTY COMPILE_OPTIONS -Wno-error -Wno-unused-parameter)
+#set_property(TARGET LexerTest APPEND PROPERTY COMPILE_OPTIONS -Wno-error -Wno-unused-parameter)

@@ -12,7 +12,7 @@ import lit.formats
 
 config.name = "Eter"
 config.test_format = lit.formats.ShTest(True)
-config.suffixes = [".mlir", ".smoke"]
+config.suffixes = [".et", ".mlir", ".smoke"]
 config.excludes = ["CMakeLists.txt", "lit.cfg.py", "lit.site.cfg.py.in", "lit.local.cfg"]
 config.test_source_root = os.path.dirname(__file__)
 config.test_exec_root = os.path.join(config.eter_obj_root, "test")

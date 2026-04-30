@@ -153,13 +153,6 @@ testing approach**:
 Unit tests live in `unittests/` and use Google Test (gtest). They cover individual
 functions and classes.
 
-```
-unittests/
-├── Base/       # Tests for Base library
-├── Driver/     # Tests for Driver library
-└── Lexer/      # Tests for Lexer library
-```
-
 Run unit tests with:
 
 ```bash

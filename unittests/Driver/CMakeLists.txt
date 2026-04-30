@@ -6,7 +6,6 @@
 #
 #===----------------------------------------------------------------------===#
 
-# Add the Driver library unit tests (LLVM style: one executable, multiple .cpp files)
 add_unittest(EterUnitTests EterDriverTests
   VersionTest.cpp
   DriverTest.cpp

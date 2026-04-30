@@ -42,12 +42,7 @@ function(add_unittest_with_input_files test_suite test_name)
   add_unittest(${test_suite} ${test_name} ${ARGN})
 endfunction()
 
-# Helper function for adding Eter unit tests
-function(add_eter_unittest test_dirname)
-  add_subdirectory(${test_dirname})
-endfunction()
-
 # Add unittest subdirectories here as Eter grows
-add_eter_unittest(Base)
-add_eter_unittest(Driver)
-add_eter_unittest(Lexer)
+add_subdirectory(Base)
+add_subdirectory(Driver)
+add_subdirectory(Lexer)
