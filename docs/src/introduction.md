@@ -1,16 +1,32 @@
 # Introduction
 
+> [!WARNING]
+> This book is currently in the early stages of development.
+
 This book is the primary reference for the **Eter** programming language.
-
-It does not serve as an introduction to the language. Background familiarity with the language is assumed.
-
-Additionally, this book does not assume you are reading it sequentially.
+This book does not assume you are reading it sequentially.
 Each chapter generally can be read standalone, but will cross-link to other chapters for facets of the language they refer to, but do not discuss.
 
 > [!NOTE]
 > For known bugs and omissions in this book, see our [GitHub issues]. If you see a case where the compiler behavior and the text here do not agree, file an issue so we can think about which is correct.
 
-## Eter releases
+
+## Contributing
+
+We welcome contributions of all kinds.
+
+You can contribute to this book by opening an issue or sending a pull request to [the Eter repository].
+If this book does not answer your question, and you think its answer is in scope of it, please do not hesitate to [file an issue].
+Knowing what people use this book for the most helps direct our attention to making those sections the best that they can be.
+And of course, if you see anything that is wrong or is non-normative but not specifically called out as such, please also [file an issue].
+
+[github issues]: https://github.com/eter-lang/eter/issues
+[the Eter repository]: https://github.com/eter-lang/eter/
+[file an issue]: https://github.com/eter-lang/eter/issues
+[Notation]: notation.md
+
+
+<!-- ## Eter releases
 
 > [!CAUTION]
 > TODO: add release information here once we have a release.
@@ -65,18 +81,4 @@ These conventions are documented here.
   > [!CAUTION]
   > This is a caution block.
 
-* The grammar and lexical productions are described in the [Notation] chapter.
-
-## Contributing
-
-We welcome contributions of all kinds.
-
-You can contribute to this book by opening an issue or sending a pull request to [the Eter repository].
-If this book does not answer your question, and you think its answer is in scope of it, please do not hesitate to [file an issue].
-Knowing what people use this book for the most helps direct our attention to making those sections the best that they can be.
-And of course, if you see anything that is wrong or is non-normative but not specifically called out as such, please also [file an issue].
-
-[github issues]: https://github.com/eter-lang/eter/issues
-[the Eter repository]: https://github.com/eter-lang/eter/
-[file an issue]: https://github.com/eter-lang/eter/issues
-[Notation]: notation.md
+* The grammar and lexical productions are described in the [Notation] chapter. -->
