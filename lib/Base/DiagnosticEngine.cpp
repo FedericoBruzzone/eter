@@ -73,6 +73,11 @@ DiagnosticBuilder<DiagnosticEngine> DiagnosticEngine::note(Span Span) {
   return note().at(Span);
 }
 
+DiagnosticBuilder<DiagnosticEngine> DiagnosticEngine::ice() {
+  return DiagnosticBuilder(*this, DiagnosticLevel::Error,
+                           DiagnosticKind::InternalCompilerError);
+}
+
 DiagnosticBuilder<DiagnosticEngine> DiagnosticEngine::ice(Span Span) {
   return DiagnosticBuilder(*this, DiagnosticLevel::Error,
                            DiagnosticKind::InternalCompilerError)
