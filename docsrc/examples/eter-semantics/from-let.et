@@ -263,7 +263,7 @@ struct Point {
 }
 
 fn f(let p:  Point, mut u: Point) -> Point {
-    // U is not used
+    // u is not used
     let x = p.x;
     let y = p.y;
     Point { x, y }
@@ -309,7 +309,7 @@ struct Point {
 }
 
 fn f(let p:  Point, mut u: Point) -> Point {
-    // U is not used
+    // u is not used
     let x = p.x;
     let y = p.y;
     Point { x, y }
@@ -342,6 +342,53 @@ fn tmp2() {
         let mut p2 = Point { x: 3, y: 4 };
         p3 = f(p1, p2);
         // - p2 is moved, so it is not used anymore
+        // - p1 can be used again
+        // - It does not matter if p3 is derived from p1 or p2
+    }
+}
+
+// ========================================================================
+
+
+struct Point {
+    let x: i32,
+    let y: i32,
+}
+
+fn f(let p:  Point, proj u: Point) -> Point {
+    // u is not used
+    let x = p.x;
+    let y = p.y;
+    Point { x, y }
+}
+
+fn tmp1() {
+    let p1 = Point { x: 1, y: 2 };
+    let mut p2 = Point { x: 1, y: 2 };
+    let p3 = f(p1, p2);
+    // - p2 is projected, so it is can be used again
+    // - p1 can be used again
+    // - It does not matter if p3 is derived from p1 or p2
+}
+
+
+// OPTIMIZATION to avoid copy
+// fn tmp2() {
+//     let p3;
+//     let p1 = Point { x: 1, y: 2 };
+//     let mut tmp = Point { x: 3, y: 4 };
+//     {
+//         let mut p2 = tmp;
+//         p3 = f(p1, p2);
+//     }
+// }
+fn tmp2() {
+    let p3;
+    let p1 = Point { x: 1, y: 2 };
+    {
+        let proj p2 = Point { x: 3, y: 4 };
+        p3 = f(p1, p2);
+        // - p2 is projected, so it is can be used again
         // - p1 can be used again
         // - It does not matter if p3 is derived from p1 or p2
     }
