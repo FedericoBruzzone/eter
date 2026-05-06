@@ -7,55 +7,387 @@
 // ==========
 // Proj to Proj
 // ==========
+
 fn main() {
-    let proj x: i32 = 1;
-    let proj y: i32 = &x;
-    let proj z: i32 = &x; // NOTE: Changing the regime from proj to proj is allowed multiple times
-                          //       as long as the previous projection is not used anymore. This is
-                          //       to guarantee that only one projection is active at a time.
+    let proj x: i32 = &1;
+    // let proj y: i32 = &x; // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
 }
 
 fn f(proj x: i32) {}
 fn main() {
-    let proj x: i32 = 1;
-    f(&x); // NOTE: A simple re-projection is allowed.
-    let proj z: i32 = &x;
+    let proj x: i32 = &1;
+    // f(&x); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
 }
 
 // ==========
 // Proj to Fix
 // ==========
+
 fn main() {
-    let proj x: i32 = 1;
-    let fix y: i32 = &x; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
-    let fix z: i32 = &x; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
-    &x = 2;
+    let proj x: i32 = &1;
+    let fix y: i32 = x; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    let fix z: i32 = x; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    x = &2; // NOTE: Reinitialization is not always needed.
 }
 
 fn f(fix x: i32) {}
 fn main() {
-    let proj x: i32 = 1;
-    f(x); // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    let proj x: i32 = &1;
+    f(x);               // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
     let fix z: i32 = x; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
-    &x = 2;
+    x = &2; // NOTE: Reinitialization is not always needed.
 }
 
 // ==========
-// Mut to Fix
+// Proj to Mut
 // ==========
+
 fn main() {
-    let proj x: i32 = 1;
+    let proj x: i32 = &1;
     let mut y: i32 = x; // NOTE: Changing the regime from proj to mut forces a reinitialization of the projection.
     // let mut z: i32 = x; // ERROR: Changing the regime from proj to mut is allowed only once. Need to copy.
                            //        This is to guarantee both that only one mutation is active at a time.
-    &x = 2;
+    x = &2; // NOTE: Reinitialization is not always needed.
 }
 
+// OPTIMIZATION2
 fn f(mut x: i32) {}
 fn main() {
-    let proj x: i32 = 1;
+    let proj x: i32 = &1;
     f(x); // NOTE: Changing the regime from proj to mut forces a reinitialization of the projection.
     // let mut z: i32 = x; // ERROR: Changing the regime from proj to mut is allowed only once. Need to copy.
                            //        This is to guarantee both that only one mutation is active at a time.
-    &x = 2;
+    x = &2; // NOTE: Reinitialization is not always needed.
 }
+
+// ========================================================================
+// ========================================================================
+// ARRAY TYPES
+// ========================================================================
+// ========================================================================
+
+// ==========
+// Proj to Proj
+// ==========
+
+fn main() {
+    let proj x: [i32; 3] = &[1, 2, 3];
+    // let proj y: [i32; 3] = &x; // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+fn f(proj x: [i32; 3]) {}
+fn main() {
+    let proj x: [i32; 3] = &[1, 2, 3];
+    // f(&x); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+// ==========
+// Proj to Fix
+// ==========
+
+fn main() {
+    let proj x: [i32; 3] = &[1, 2, 3];
+    let fix y: [i32; 3] = x; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    let fix z: [i32; 3] = x; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    x = &[3, 2, 1]; // NOTE: Reinitialization is not always needed.
+}
+
+fn f(fix x: [i32; 3]) {}
+fn main() {
+    let proj x: [i32; 3] = &[1, 2, 3];
+    f(x);                    // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    let fix z: [i32; 3] = x; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    x = &[3, 2, 1]; // NOTE: Reinitialization is not always needed.
+}
+
+// ==========
+// Proj to Mut
+// ==========
+fn main() {
+    let proj x: [i32; 3] = &[1, 2, 3];
+    let mut y: [i32; 3] = x; // NOTE: Changing the regime from proj to mut forces a reinitialization of the projection.
+    // let mut z: [i32; 3] = x; // ERROR: Changing the regime from proj to mut is allowed only once. Need to copy.
+                               //        This is to guarantee both that only one mutation is active at a time.
+    x = &[3, 2, 1]; // NOTE: Reinitialization is not always needed.
+}
+
+fn f(mut x: [i32; 3]) {}
+fn main() {
+    let proj x: [i32; 3] = &[1, 2, 3];
+    f(x); // NOTE: Changing the regime from proj to mut forces a reinitialization of the projection.
+    // let mut z: [i32; 3] = x; // ERROR: Changing the regime from proj to mut is allowed only once. Need to copy.
+                               //        This is to guarantee both that only one mutation is active at a time.
+    x = &[3, 2, 1]; // NOTE: Reinitialization is not always needed.
+}
+
+// ========================================================================
+// ========================================================================
+// Structs with Fix
+// ========================================================================
+// ========================================================================
+
+struct Point {
+    fix x: i32,
+    fix y: i32,
+}
+
+// ==========
+// Proj to Proj
+// ==========
+
+fn main() {
+    let proj p = &Point { x: 1, y: 2 };
+    // let proj q = &p; // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+fn f(proj p: Point) {}
+fn main() {
+    let proj p = &Point { x: 1, y: 2 };
+    // f(&p); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+// ==========
+// Proj to Fix
+// ==========
+
+fn main() {
+    let proj p = &Point { x: 1, y: 2 };
+    let fix q = p; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    let fix r = p; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    p = &Point { x: 3, y: 4 }; // NOTE: Reinitialization is not always needed.
+}
+
+fn f(fix p: Point) {}
+fn main() {
+    let proj p = &Point { x: 1, y: 2 };
+    f(p);          // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    let fix q = p; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    p = &Point { x: 3, y: 4 }; // NOTE: Reinitialization is not always needed.
+}
+
+// ==========
+// Proj to Mut
+// ==========
+fn main() {
+    let proj p = &Point { x: 1, y: 2 };
+    let mut q = p; // NOTE: Changing the regime from proj to mut forces a reinitialization of the projection.
+    // let mut r = p; // ERROR: Changing the regime from proj to mut is allowed only once. Need to copy.
+                     //        This is to guarantee both that only one mutation is active at a time.
+    p = &Point { x: 3, y: 4 }; // NOTE: Reinitialization is not always needed.
+}
+
+fn f(mut p: Point) {}
+fn main() {
+    let proj p = &Point { x: 1, y: 2 };
+    f(p); // NOTE: Changing the regime from proj to mut forces a reinitialization of the projection.
+    // let mut r = p; // ERROR: Changing the regime from proj to mut is allowed only once. Need to copy.
+                     //        This is to guarantee both that only one mutation is active at a time.
+    p = &Point { x: 3, y: 4 }; // NOTE: Reinitialization is not always needed.
+}
+
+// ========================================================================
+// ========================================================================
+// Proj-Proj as Formal Parameter and Return
+// ========================================================================
+// ========================================================================
+
+// ==========
+// Proj-Proj to Proj
+// ==========
+
+fn proj f(proj p: Point): Point { &p }
+fn main() {
+    let proj p = &Point { x: 1, y: 2 };
+    // let proj q = &f(&p); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+fn proj f2(proj p1: Point, proj p2: Point): Point { &p1 }
+fn main() {
+    let proj p1 = &Point { x: 1, y: 2 };
+    let proj p2 = &Point { x: 3, y: 4 };
+    // let proj q = &f2(&p1, &p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+// ==========
+// Proj-Proj to Fix
+// ==========
+fn proj f(proj p: Point): Point { &p }
+fn main() {
+    let proj p = &Point { x: 1, y: 2 };
+    // let fix q = &f(&p); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+fn proj f2(proj p1: Point, proj p2: Point): Point { &p1 }
+fn main() {
+    let proj p1 = &Point { x: 1, y: 2 };
+    let proj p2 = &Point { x: 3, y: 4 };
+    // let fix q = &f2(&p1, &p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+// ===========
+// Proj-Proj to Mut
+// ===========
+fn proj f(proj p: Point): Point { &p }
+fn main() {
+    let proj p = &Point { x: 1, y: 2 };
+    // let mut q = &f(&p); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+fn proj f2(proj p1: Point, proj p2: Point): Point { &p1 }
+fn main() {
+    let proj p1 = &Point { x: 1, y: 2 };
+    let proj p2 = &Point { x: 3, y: 4 };
+    // let mut q = &f2(&p1, &p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+// ========================================================================
+// ========================================================================
+// Proj-Fix as Formal Parameter and Return
+// ========================================================================
+// ========================================================================
+
+TODO
+
+// ========================================================================
+// ========================================================================
+// Proj-Mut as Formal Parameter and Return
+// ========================================================================
+// ========================================================================
+
+TODO
+
+// ========================================================================
+// ========================================================================
+// Store Proj in Struct from Proj
+// ========================================================================
+// ========================================================================
+
+// SINGLE CASE
+
+struct Point {
+    proj x: i32,
+    proj y: i32,
+}
+
+fn proj f(proj p: Point): Point {
+    // let proj x = &p.x; // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    // let proj y = &p.y; // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    &Point { x, y }
+}
+
+fn tmp1() {
+    let proj p1 = &Point { x: 1, y: 2 };
+    // let proj p2 = &f(&p1); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+fn tmp2() {
+    let proj p2;
+    {
+        let proj p1 = &Point { x: 1, y: 2 };
+        // p2 = &f(&p1); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    }
+}
+
+// ========================================================================
+
+struct Point {
+    proj x: i32,
+    proj y: i32,
+}
+
+fn proj f(proj p: Point, proj u: Point): Point {
+    // u is not used
+    // let proj x = p.x; // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    // let proj y = p.y; // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    &Point { x, y }
+}
+
+fn tmp1() {
+    let proj p1 = &Point { x: 1, y: 2 };
+    let proj p2 = &Point { x: 1, y: 2 };
+    // let proj p3 = &f(&p1, &p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+fn tmp2() {
+    let proj p3;
+    let proj p1 = &Point { x: 1, y: 2 };
+    {
+        let proj p2 = &Point { x: 3, y: 4 };
+        // p3 = &f(&p1, p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    }
+}
+
+// ========================================================================
+
+
+struct Point {
+    proj x: i32,
+    proj y: i32,
+}
+
+fn proj f(proj p: Point, mut u: Point): Point {
+    // u is not used
+    // let proj x = p.x; // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    // let proj y = p.y; // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    &Point { x, y }
+}
+
+fn tmp1() {
+    let proj p1 = &Point { x: 1, y: 2 };
+    let mut p2 = &Point { x: 1, y: 2 };
+    // let proj p3 = &f(&p1, &p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+fn tmp2() {
+    let proj p3;
+    let proj p1 = &Point { x: 1, y: 2 };
+    {
+        let mut p2 = &Point { x: 3, y: 4 };
+        // p3 = &f(&p1, p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    }
+}
+
+// ========================================================================
+
+struct Point {
+    proj x: i32,
+    proj y: i32,
+}
+
+fn proj f(proj p: Point, fix u: Point): Point {
+    // u is not used
+    // let proj x = p.x; // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    // let proj y = p.y; // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    &Point { x, y }
+}
+
+fn tmp1() {
+    let proj p1 = &Point { x: 1, y: 2 };
+    let fix p2 = &Point { x: 1, y: 2 };
+    // let proj p3 = &f(&p1, &p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+fn tmp2() {
+    let proj p3;
+    let proj p1 = &Point { x: 1, y: 2 };
+    {
+        let fix p2 = &Point { x: 3, y: 4 };
+        // p3 = &f(&p1, p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    }
+}
+
+// ========================================================================
+// ========================================================================
+// Store Mut in Struct from Proj
+// ========================================================================
+// ========================================================================
+
+TODO
+
+// ========================================================================
+// ========================================================================
+// Store Fix in Struct from Proj
+// ========================================================================
+// ========================================================================
+
+TODO

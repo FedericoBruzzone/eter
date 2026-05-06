@@ -41,8 +41,8 @@ fn main() {
 // ===========
 fn main() {
     let mut x: i32 = 1;
-    let proj y: i32 = x;
-    // let proj z: i32 = x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    let proj y: i32 = &x;
+    // let proj z: i32 = &x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
     &y = 2;
     // NOTE: x can be eventually used again if y is not used anymore.
 }
@@ -51,7 +51,7 @@ fn f(proj x: i32) {}
 fn main() {
     let mut x: i32 = 1;
     f(&x);
-    // let proj y: i32 = x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    // let proj y: i32 = &x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
     // NOTE: x can be eventually used again.
 }
 
@@ -99,8 +99,8 @@ fn main() {
 // ===========
 fn main() {
     let mut x: [i32; 3] = [1, 2, 3];
-    let proj y: [i32; 3] = x;
-    // let proj z: [i32; 3] = x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    let proj y: [i32; 3] = &x;
+    // let proj z: [i32; 3] = &x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
     &y = [3, 2, 1];
     // NOTE: x can be eventually used again if y is not used anymore.
 }
@@ -108,14 +108,14 @@ fn main() {
 fn f(proj x: [i32; 3]) {}
 fn main() {
     let mut x: [i32; 3] = [1, 2, 3];
-    f(x);
-    // let proj y: [i32; 3] = x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
-    // NOTE: x can be eventually used again.
+    f(&x);
+    // let proj y: [i32; 3] = &x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    // NOTE: x can be eventually used agai.
 }
 
 // ========================================================================
 // ========================================================================
-// STRUCTS
+// Structs with Fix
 // ========================================================================
 // ========================================================================
 
@@ -161,8 +161,8 @@ fn main() {
 // ===========
 fn main() {
     let mut p = Point { x: 1, y: 2 };
-    let proj q = p;
-    // let proj r = p; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    let proj q = &p;
+    // let proj r = &p; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
     &q = Point { x: 3, y: 4 };
     // NOTE: p can be eventually used again if q is not used anymore.
 }
@@ -170,19 +170,19 @@ fn main() {
 fn f(proj p: Point) {}
 fn main() {
     let mut p = Point { x: 1, y: 2 };
-    f(p);
-    // let proj q = p; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    f(&p);
+    // let proj q = &p; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
     // NOTE: p can be eventually used again.
 }
 
 // ========================================================================
 // ========================================================================
-// Mut as Formal Parameter in the Presence of Returns
+// Mut-Mut as Formal Parameter and Return
 // ========================================================================
 // ========================================================================
 
 // ==========
-// Mut to Mut
+// Mut-Mut to Mut
 // ==========
 fn mut f(mut p: Point): Point { p }
 fn main() {
@@ -198,40 +198,56 @@ fn main() {
 }
 
 // ==========
-// Mut to Fix
+// Mut-Mut to Fix
 // ==========
 fn mut f(mut p: Point): Point { p }
 fn main() {
     let mut p = Point { x: 1, y: 2 };
-    let q = f(p);
+    let fix q = f(p);
 }
 
 fn mut f2(mut p1: Point, mut p2: Point): Point { p1 }
 fn main() {
     let mut p1 = Point { x: 1, y: 2 };
     let mut p2 = Point { x: 3, y: 4 };
-    let q = f2(p1, p2);
+    let fix q = f2(p1, p2);
 }
 
 // ===========
-// Mut to Proj
+// Mut-Mut to Proj
 // ===========
 fn mut f(mut p: Point): Point { p }
 fn main() {
     let mut p = Point { x: 1, y: 2 };
-    let proj q = f(p);
+    let proj q = &f(p);
 }
 
 fn mut f2(mut p1: Point, mut p2: Point): Point { p1 }
 fn main() {
     let mut p1 = Point { x: 1, y: 2 };
     let mut p2 = Point { x: 3, y: 4 };
-    let proj q = f2(p1, p2);
+    let proj q = &f2(p1, p2);
 }
 
 // ========================================================================
 // ========================================================================
-// Store Mut in Struct
+// Mut-Fix as Formal Parameter and Return
+// ========================================================================
+// ========================================================================
+
+TODO
+
+// ========================================================================
+// ========================================================================
+// Mut-Proj as Formal Parameter and Return
+// ========================================================================
+// ========================================================================
+
+TODO
+
+// ========================================================================
+// ========================================================================
+// Store Mut in Struct from Mut
 // ========================================================================
 // ========================================================================
 
@@ -372,7 +388,7 @@ fn mut f(mut p: Point, proj u: Point): Point {
 fn tmp1() {
     let mut p1 = Point { x: 1, y: 2 };
     let mut p2 = Point { x: 1, y: 2 };
-    let mut p3 = f(p1, p2);
+    let mut p3 = f(p1, &p2);
     // - p2 is projected, so it is can be used again
     // - p1 is moved, so it is not used anymore
 }
@@ -393,8 +409,24 @@ fn tmp2() {
     let mut p1 = Point { x: 1, y: 2 };
     {
         let mut p2 = Point { x: 3, y: 4 };
-        p3 = f(p1, p2);
+        p3 = f(p1, &p2);
         // - p2 is projected, so it is can be used again
         // - p1 is moved, so it is not used anymore
     }
 }
+
+// ========================================================================
+// ========================================================================
+// Store Proj in Struct from Mut
+// ========================================================================
+// ========================================================================
+
+TODO
+
+// ========================================================================
+// ========================================================================
+// Store Fix in Struct from Mut
+// ========================================================================
+// ========================================================================
+
+TODO
