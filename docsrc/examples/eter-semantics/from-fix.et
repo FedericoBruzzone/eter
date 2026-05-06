@@ -21,8 +21,8 @@ fn main() {
 fn f(mut x: i32) {}
 fn main() {
     let fix x: i32 = 1;
-    let mut y: i32 = x; // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
-    f(x); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    // let mut y: i32 = x; // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    // f(x); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
 }
 
 // ===========
@@ -31,8 +31,8 @@ fn main() {
 fn f(proj x: i32) {}
 fn main() {
     let x: i32 = 1;
-    let proj y: i32 = x; // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
-    f(x); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    // let proj y: i32 = x; // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    // f(x); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
 }
 
 // ========================================================================
@@ -57,8 +57,8 @@ fn main() {
 fn f(mut x: [i32; 3]) {}
 fn main() {
     let fix x: [i32; 3] = [1, 2, 3];
-    let mut y: [i32; 3] = x; // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
-    f(x); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    // let mut y: [i32; 3] = x; // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    // f(x); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
 }
 
 // ===========
@@ -67,8 +67,8 @@ fn main() {
 fn f(proj x: [i32; 3]) {}
 fn main() {
     let fix x: [i32; 3] = [1, 2, 3];
-    let proj y: [i32; 3] = x; // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
-    f(x); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    // let proj y: [i32; 3] = x; // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    // f(x); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
 }
 
 // ========================================================================
@@ -98,8 +98,8 @@ fn main() {
 fn f(mut p: Point) {}
 fn main() {
     let fix p = Point { x: 1, y: 2 };
-    let mut q = p; // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
-    f(p); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    // let mut q = p; // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    // f(p); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
 }
 
 // ===========
@@ -108,7 +108,7 @@ fn main() {
 fn f(proj p: Point) {}
 fn main() {
     let fix p = Point { x: 1, y: 2 };
-    let proj q = p; // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    // let proj q = p; // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
 }
 
 // ========================================================================
@@ -139,14 +139,14 @@ fn main() {
 fn fix f(fix p: Point): Point { p }
 fn main() {
     let fix p = Point { x: 1, y: 2 };
-    let mut q = f(p); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    // let mut q = f(p); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
 }
 
 fn fix f2(fix p1: Point, fix p2: Point): Point { p1 }
 fn main() {
     let fix p1 = Point { x: 1, y: 2 };
     let fix p2 = Point { x: 3, y: 4 };
-    let mut q = f2(p1, p2); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    // let mut q = f2(p1, p2); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
 }
 
 // ===========
@@ -155,14 +155,14 @@ fn main() {
 fn fix f(fix p: Point): Point { p }
 fn main() {
     let fix p = Point { x: 1, y: 2 };
-    let proj q = f(p); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    // let proj q = f(p); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
 }
 
 fn fix f2(fix p1: Point, fix p2: Point): Point { p1 }
 fn main() {
     let fix p1 = Point { x: 1, y: 2 };
     let fix p2 = Point { x: 3, y: 4 };
-    let proj q = f2(p1, p2); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    // let proj q = f2(p1, p2); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
 }
 
 // ========================================================================
