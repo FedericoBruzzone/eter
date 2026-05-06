@@ -1,0 +1,61 @@
+// ========================================================================
+// ========================================================================
+// SCALAR TYPES
+// ========================================================================
+// ========================================================================
+
+// ==========
+// Proj to Proj
+// ==========
+fn main() {
+    let proj x: i32 = 1;
+    let proj y: i32 = &x;
+    let proj z: i32 = &x; // NOTE: Changing the regime from proj to proj is allowed multiple times
+                          //       as long as the previous projection is not used anymore. This is
+                          //       to guarantee that only one projection is active at a time.
+}
+
+fn f(proj x: i32) {}
+fn main() {
+    let proj x: i32 = 1;
+    f(&x); // NOTE: A simple re-projection is allowed.
+    let proj z: i32 = &x;
+}
+
+// ==========
+// Proj to Fix
+// ==========
+fn main() {
+    let proj x: i32 = 1;
+    let fix y: i32 = &x; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    let fix z: i32 = &x; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    &x = 2;
+}
+
+fn f(fix x: i32) {}
+fn main() {
+    let proj x: i32 = 1;
+    f(x); // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    let fix z: i32 = x; // NOTE: Changing the regime from proj to fix forces a reinitialization of the projection.
+    &x = 2;
+}
+
+// ==========
+// Mut to Fix
+// ==========
+fn main() {
+    let proj x: i32 = 1;
+    let mut y: i32 = x; // NOTE: Changing the regime from proj to mut forces a reinitialization of the projection.
+    // let mut z: i32 = x; // ERROR: Changing the regime from proj to mut is allowed only once. Need to copy.
+                           //        This is to guarantee both that only one mutation is active at a time.
+    &x = 2;
+}
+
+fn f(mut x: i32) {}
+fn main() {
+    let proj x: i32 = 1;
+    f(x); // NOTE: Changing the regime from proj to mut forces a reinitialization of the projection.
+    // let mut z: i32 = x; // ERROR: Changing the regime from proj to mut is allowed only once. Need to copy.
+                           //        This is to guarantee both that only one mutation is active at a time.
+    &x = 2;
+}

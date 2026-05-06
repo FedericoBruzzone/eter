@@ -10,14 +10,14 @@
 fn main() {
     let mut x: i32 = 1;
     let mut y: i32 = x;
-    let mut z: i32 = x; // ERROR: Changing the regime from mut to mut is allowed only once. Need to copy.
+    // let mut z: i32 = x; // ERROR: Changing the regime from mut to mut is allowed only once. Need to copy.
 }
 
 fn f(mut x: i32) {}
 fn main() {
     let mut x: i32 = 1;
     f(x);
-    let mut z: i32 = x; // ERROR: Changing the regime from mut to mut is allowed only once. Need to copy.
+    // let mut z: i32 = x; // ERROR: Changing the regime from mut to mut is allowed only once. Need to copy.
 }
 
 // ==========
@@ -42,15 +42,17 @@ fn main() {
 fn main() {
     let mut x: i32 = 1;
     let proj y: i32 = x;
-    let proj z: i32 = x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    // let proj z: i32 = x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
     &y = 2;
+    // NOTE: x can be eventually used again if y is not used anymore.
 }
 
 fn f(proj x: i32) {}
 fn main() {
     let mut x: i32 = 1;
-    f(x);
-    let proj y: i32 = x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    f(&x);
+    // let proj y: i32 = x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    // NOTE: x can be eventually used again.
 }
 
 // ========================================================================
@@ -66,14 +68,14 @@ fn main() {
 fn main() {
     let mut x: [i32; 3] = [1, 2, 3];
     let mut y: [i32; 3] = x;
-    let mut z: [i32; 3] = x; // ERROR: Changing the regime from mut to mut is allowed only once. Need to copy.
+    // let mut z: [i32; 3] = x; // ERROR: Changing the regime from mut to mut is allowed only once. Need to copy.
 }
 
 fn f(mut x: [i32; 3]) {}
 fn main() {
     let mut x: [i32; 3] = [1, 2, 3];
     f(x);
-    let mut z: [i32; 3] = x; // ERROR: Changing the regime from mut to mut is allowed only once. Need to copy.
+    // let mut z: [i32; 3] = x; // ERROR: Changing the regime from mut to mut is allowed only once. Need to copy.
 }
 
 // ==========
@@ -98,15 +100,17 @@ fn main() {
 fn main() {
     let mut x: [i32; 3] = [1, 2, 3];
     let proj y: [i32; 3] = x;
-    let proj z: [i32; 3] = x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    // let proj z: [i32; 3] = x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
     &y = [3, 2, 1];
+    // NOTE: x can be eventually used again if y is not used anymore.
 }
 
 fn f(proj x: [i32; 3]) {}
 fn main() {
     let mut x: [i32; 3] = [1, 2, 3];
     f(x);
-    let proj y: [i32; 3] = x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    // let proj y: [i32; 3] = x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    // NOTE: x can be eventually used again.
 }
 
 // ========================================================================
@@ -126,14 +130,14 @@ struct Point {
 fn main() {
     let mut p = Point { x: 1, y: 2 };
     let mut q = p;
-    let mut r = p; // ERROR: Changing the regime from mut to mut is allowed only once. Need to copy.
+    // let mut r = p; // ERROR: Changing the regime from mut to mut is allowed only once. Need to copy.
 }
 
 fn f(mut p: Point) {}
 fn main() {
     let mut p = Point { x: 1, y: 2 };
     f(p);
-    let mut r = p; // ERROR: Changing the regime from mut to mut is allowed only once. Need to copy.
+    // let mut r = p; // ERROR: Changing the regime from mut to mut is allowed only once. Need to copy.
 }
 
 // ==========
@@ -158,15 +162,17 @@ fn main() {
 fn main() {
     let mut p = Point { x: 1, y: 2 };
     let proj q = p;
-    let proj r = p; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    // let proj r = p; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
     &q = Point { x: 3, y: 4 };
+    // NOTE: p can be eventually used again if q is not used anymore.
 }
 
 fn f(proj p: Point) {}
 fn main() {
     let mut p = Point { x: 1, y: 2 };
     f(p);
-    let proj q = p; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    // let proj q = p; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    // NOTE: p can be eventually used again.
 }
 
 // ========================================================================
