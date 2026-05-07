@@ -177,7 +177,7 @@ fn main() {
 
 // ========================================================================
 // ========================================================================
-// Mut-Mut as Formal Parameter and Return
+// Mut-Mut as return and formal parameter
 // ========================================================================
 // ========================================================================
 
@@ -231,19 +231,136 @@ fn main() {
 
 // ========================================================================
 // ========================================================================
-// Mut-Fix as Formal Parameter and Return
+// Mut-Fix as return and formal parameter
 // ========================================================================
 // ========================================================================
 
-TODO
+// ==========
+// Mut-Fix to Mut
+// ==========
+fn mut f(fix p: Point): Point {
+    // p // ERROR: Escaping the return of a fix to a mut is not allowed. Need to copy.
+}
+fn main() {
+    let fix p = Point { x: 1, y: 2 };
+    let mut q = f(p);
+}
+
+fn mut f2(fix p1: Point, fix p2: Point): Point {
+    // p1 // ERROR: Escaping the return of a fix to a mut is not allowed. Need to copy.
+}
+fn main() {
+    let fix p1 = Point { x: 1, y: 2 };
+    let fix p2 = Point { x: 3, y: 4 };
+    let mut q = f2(p1, p2);
+}
+
+// ==========
+// Mut-Fix to Fix
+// ==========
+fn mut f(fix p: Point): Point {
+    // p // ERROR: Escaping the return of a fix to a mut is not allowed. Need to copy.
+}
+fn main() {
+    let fix p = Point { x: 1, y: 2 };
+    let mut q = f(p);
+}
+
+fn mut f2(fix p1: Point, fix p2: Point): Point {
+    // p1  // ERROR: Escaping the return of a fix to a mut is not allowed. Need to copy.
+}
+fn main() {
+    let fix p1 = Point { x: 1, y: 2 };
+    let fix p2 = Point { x: 3, y: 4 };
+    let mut q = f2(p1, p2);
+}
+
+// ==========
+// Mut-Fix to Proj
+// ==========
+fn mut f(fix p: Point): Point {
+    // p // ERROR: Escaping the return of a fix to a mut is not allowed. Need to copy.
+}
+fn main() {
+    let fix p = Point { x: 1, y: 2 };
+    let mut q = f(p);
+}
+
+fn mut f2(fix p1: Point, fix p2: Point): Point {
+    // p1  // ERROR: Escaping the return of a fix to a mut is not allowed. Need to copy.
+}
+fn main() {
+    let fix p1 = Point { x: 1, y: 2 };
+    let fix p2 = Point { x: 3, y: 4 };
+    let mut q = f2(p1, p2);
+}
 
 // ========================================================================
 // ========================================================================
-// Mut-Proj as Formal Parameter and Return
+// Mut-Proj as return and formal parameter
 // ========================================================================
 // ========================================================================
 
-TODO
+// ==========
+// Mut-Proj to Mut
+// ==========
+fn mut f(proj p: Point): Point {
+    // p // ERROR: Escaping the return of a proj to a mut is not allowed. Need to copy.
+}
+fn main() {
+    let proj p = &Point { x: 1, y: 2 };
+    // let mut q = f(&p); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+fn mut f2(proj p1: Point, proj p2: Point): Point {
+    // p1 // ERROR: Escaping the return of a proj to a mut is not allowed. Need to copy.
+}
+fn main() {
+    let proj p1 = &Point { x: 1, y: 2 };
+    let proj p2 = &Point { x: 3, y: 4 };
+    // let mut q = f2(&p1, &p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+// ==========
+// Mut-Proj to Fix
+// ==========
+fn mut f(proj p: Point): Point {
+    // p // ERROR: Escaping the return of a proj to a mut is not allowed. Need to copy.
+}
+fn main() {
+    let proj p = &Point { x: 1, y: 2 };
+    // let fix q = f(&p); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+fn mut f2(proj p1: Point, proj p2: Point): Point {
+    // p1 // ERROR: Escaping the return of a proj to a mut is not allowed. Need to copy.
+}
+fn main() {
+    let proj p1 = &Point { x: 1, y: 2 };
+    let proj p2 = &Point { x: 3, y: 4 };
+    // let fix q = f2(&p1, &p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+// ==========
+// Mut-Proj to Proj
+// ==========
+fn mut f(proj p: Point): Point {
+    // p // ERROR: Escaping the return of a proj to a mut is not allowed. Need to copy.
+}
+fn main() {
+    let proj p = &Point { x: 1, y: 2 };
+    // let proj q = f(&p); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
+fn mut f2(proj p1: Point, proj p2: Point): Point {
+    // p1 // ERROR: Escaping the return of a proj to a mut is not allowed. Need to copy.
+}
+fn main() {
+    let proj p1 = &Point { x: 1, y: 2 };
+    let proj p2 = &Point { x: 3, y: 4 };
+    // let proj q = f2(&p1, &p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+}
+
 
 // ========================================================================
 // ========================================================================
