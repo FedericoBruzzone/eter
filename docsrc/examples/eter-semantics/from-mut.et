@@ -368,7 +368,9 @@ fn main() {
 // ========================================================================
 // ========================================================================
 
+// ==========
 // SINGLE CASE
+// ==========
 
 struct Point {
     mut x: i32,
@@ -403,7 +405,9 @@ fn tmp2() {
     }
 }
 
-// ========================================================================
+// ==========
+// Mut-Mut-Mut as return and formal parameters fromMut
+// =========
 
 struct Point {
     mut x: i32,
@@ -442,8 +446,10 @@ fn tmp2() {
     }
 }
 
-// ========================================================================
 
+// ==========
+// Mut-Mut-Fix as return and formal parameters fromMut
+// =========
 
 struct Point {
     mut x: i32,
@@ -488,7 +494,10 @@ fn tmp2() {
 }
 
 
-// ========================================================================
+
+// ==========
+// Mut-Mut-Proj as return and formal parameters fromMut
+// =========
 
 struct Point {
     mut x: i32,
@@ -538,6 +547,69 @@ fn tmp2() {
 // ========================================================================
 // ========================================================================
 
+// ==========
+// SINGLE CASE
+// ==========
+struct Point {
+    proj x: i32,
+    proj y: i32,
+}
+
+fn mut f(mut p: Point): Point {
+    let mut x = p.x; // NOTE: Changing the regime from proj to mut forces a reinitialization of the projection.
+    let mut y = p.y; // NOTE: Changing the regime from proj to mut forces a reinitialization of the projection.
+    &p.x = 10;
+    &p.y = 20;
+    Point { x, y } // TODO???
+}
+
+fn tmp1() {
+    let mut p1 = Point { x: 1, y: 2 };
+    let mut p2 = f(p1);
+}
+
+// OPTIMIZATION: to avoid copy and reference counting
+// fn tmp2() {
+//     let mut p2;
+//     let mut tmp = Point { x: 1, y: 2 };
+//     {
+//         let mut p1 = tmp;
+//         p2 = f(p1);
+//     }
+// }
+fn tmp2() {
+    let mut p2;
+    {
+        let mut p1 = Point { x: 1, y: 2 };
+        p2 = f(p1);
+    }
+}
+
+// ==========
+// Mut-Mut-Mut as return and formal parameters fromMut
+// =========
+struct Point {
+    proj x: i32,
+    proj y: i32,
+}
+TODO
+
+// ==========
+// Mut-Mut-Fix as return and formal parameters fromMut
+// =========
+struct Point {
+    proj x: i32,
+    proj y: i32,
+}
+TODO
+
+// ==========
+// Mut-Mut-Proj as return and formal parameters fromMut
+// =========
+struct Point {
+    proj x: i32,
+    proj y: i32,
+}
 TODO
 
 // ========================================================================
@@ -546,4 +618,39 @@ TODO
 // ========================================================================
 // ========================================================================
 
+
+// ==========
+// SINGLE CASE
+// ==========
+struct Point {
+    fix x: i32,
+    fix y: i32,
+}
+TODO
+
+// ==========
+// Mut-Mut-Mut as return and formal parameters fromMut
+// =========
+struct Point {
+    fix x: i32,
+    fix y: i32,
+}
+TODO
+
+// ==========
+// Mut-Mut-Fix as return and formal parameters fromMut
+// =========
+struct Point {
+    fix x: i32,
+    fix y: i32,
+}
+TODO
+
+// ==========
+// Mut-Mut-Proj as return and formal parameters fromMut
+// =========
+struct Point {
+    fix x: i32,
+    fix y: i32,
+}
 TODO
