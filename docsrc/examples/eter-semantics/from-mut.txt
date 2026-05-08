@@ -27,6 +27,7 @@ fn main() {
     let mut x: i32 = 1;
     let fix y: i32 = x;
     let fix z: i32 = x;
+    // let mut z: i32 = x; // ERROR: `x` is has been moved, so it is not valid to use it again.
 }
 
 fn f(fix x: i32) {}
@@ -34,6 +35,7 @@ fn main() {
     let mut x: i32 = 1;
     f(x);
     let fix z: i32 = x;
+    // let mut z: i32 = x; // ERROR: `x` is has been moved, so it is not valid to use it again.
 }
 
 // ===========
@@ -52,6 +54,7 @@ fn main() {
     let mut x: i32 = 1;
     f(&x);
     // let proj y: i32 = &x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
+    &y = 2;
     // NOTE: x can be eventually used again.
 }
 
@@ -110,7 +113,8 @@ fn main() {
     let mut x: [i32; 3] = [1, 2, 3];
     f(&x);
     // let proj y: [i32; 3] = &x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
-    // NOTE: x can be eventually used agai.
+    &y = [3, 2, 1];
+    // NOTE: x can be eventually used again if y is not used anymore.
 }
 
 // ========================================================================
@@ -145,8 +149,9 @@ fn main() {
 // ==========
 fn main() {
     let mut p = Point { x: 1, y: 2 };
-    let q = p;
-    let r = p;
+    let fix q = p;
+    let fix r = p;
+    // let mut z: i32 = x; // ERROR: `x` is has been moved, so it is not valid to use it again.
 }
 
 fn f(fix p: Point) {}
@@ -195,6 +200,8 @@ fn main() {
     let mut p1 = Point { x: 1, y: 2 };
     let mut p2 = Point { x: 3, y: 4 };
     let mut q = f2(p1, p2);
+    // - p2 is moved, so it is not used anymore
+    // - p1 is moved, so it is not used anymore
 }
 
 // ==========
@@ -263,7 +270,7 @@ fn mut f(fix p: Point): Point {
 }
 fn main() {
     let fix p = Point { x: 1, y: 2 };
-    let mut q = f(p);
+    let fix q = f(p);
 }
 
 fn mut f2(fix p1: Point, fix p2: Point): Point {
@@ -272,7 +279,7 @@ fn mut f2(fix p1: Point, fix p2: Point): Point {
 fn main() {
     let fix p1 = Point { x: 1, y: 2 };
     let fix p2 = Point { x: 3, y: 4 };
-    let mut q = f2(p1, p2);
+    let fix q = f2(p1, p2);
 }
 
 // ==========
@@ -283,7 +290,7 @@ fn mut f(fix p: Point): Point {
 }
 fn main() {
     let fix p = Point { x: 1, y: 2 };
-    let mut q = f(p);
+    let proj q = f(p);
 }
 
 fn mut f2(fix p1: Point, fix p2: Point): Point {
@@ -292,7 +299,7 @@ fn mut f2(fix p1: Point, fix p2: Point): Point {
 fn main() {
     let fix p1 = Point { x: 1, y: 2 };
     let fix p2 = Point { x: 3, y: 4 };
-    let mut q = f2(p1, p2);
+    let proj q = f2(p1, p2);
 }
 
 // ========================================================================
@@ -309,7 +316,8 @@ fn mut f(proj p: Point): Point {
 }
 fn main() {
     let proj p = &Point { x: 1, y: 2 };
-    // let mut q = f(&p); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    // let mut q = f(&p); // ERROR: Changing the regime from proj to proj is allowed only if p is not used anymore. Need to copy.
+    &p = Point { x: 3, y: 4 };
 }
 
 fn mut f2(proj p1: Point, proj p2: Point): Point {
@@ -318,7 +326,9 @@ fn mut f2(proj p1: Point, proj p2: Point): Point {
 fn main() {
     let proj p1 = &Point { x: 1, y: 2 };
     let proj p2 = &Point { x: 3, y: 4 };
-    // let mut q = f2(&p1, &p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    // let mut q = f2(&p1, &p2); // ERROR: Changing the regime from proj to proj is allowed only if p1 is not used anymore. Need to copy.
+                                 // NOTE: the reprojection of p2 is valid here.
+    &p1 = Point { x: 3, y: 4 };
 }
 
 // ==========
@@ -329,7 +339,8 @@ fn mut f(proj p: Point): Point {
 }
 fn main() {
     let proj p = &Point { x: 1, y: 2 };
-    // let fix q = f(&p); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    // let fix q = f(&p); // ERROR: Changing the regime from proj to proj is allowed only if p is not used anymore. Need to copy.
+    &p = Point { x: 3, y: 4 };
 }
 
 fn mut f2(proj p1: Point, proj p2: Point): Point {
@@ -338,7 +349,9 @@ fn mut f2(proj p1: Point, proj p2: Point): Point {
 fn main() {
     let proj p1 = &Point { x: 1, y: 2 };
     let proj p2 = &Point { x: 3, y: 4 };
-    // let fix q = f2(&p1, &p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    // let fix q = f2(&p1, &p2); // ERROR: Changing the regime from proj to proj is allowed only if p1 is not used anymore.
+                                 // NOTE: the reprojection of p2 is valid here.
+    &p1 = Point { x: 3, y: 4 };
 }
 
 // ==========
@@ -349,7 +362,8 @@ fn mut f(proj p: Point): Point {
 }
 fn main() {
     let proj p = &Point { x: 1, y: 2 };
-    // let proj q = f(&p); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+    // let proj q = f(&p); // ERROR: Changing the regime from proj to proj is allowed only if p is not used anymore.
+    &p = Point { x: 3, y: 4 };
 }
 
 fn mut f2(proj p1: Point, proj p2: Point): Point {
@@ -359,6 +373,8 @@ fn main() {
     let proj p1 = &Point { x: 1, y: 2 };
     let proj p2 = &Point { x: 3, y: 4 };
     // let proj q = f2(&p1, &p2); // ERROR: Changing the regime from proj to proj is not allowed. Need to copy.
+                                  // NOTE: the reprojection of p2 is valid here.
+    &p1 = Point { x: 3, y: 4 };
 }
 
 
@@ -386,6 +402,7 @@ fn mut f(mut p: Point): Point {
 fn tmp1() {
     let mut p1 = Point { x: 1, y: 2 };
     let mut p2 = f(p1);
+    // - p1 is moved, so it is not used anymore
 }
 
 // OPTIMIZATION: to avoid copy and reference counting
