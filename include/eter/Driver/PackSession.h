@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef ETER_DRIVER_PARCELSESSION_H
-#define ETER_DRIVER_PARCELSESSION_H
+#ifndef ETER_DRIVER_PACKSESSION_H
+#define ETER_DRIVER_PACKSESSION_H
 
 #include "eter/Base/StringInterner.h"
 #include "eter/Parser/Parser.h"
@@ -16,29 +16,29 @@
 
 namespace eter {
 
-/// Holds the shared state for a single `eterc` invocation over one parcel
+/// Holds the shared state for a single `eterc` invocation over one pack
 /// (a tree of source files connected by `mod foo;` declarations).
 ///
 /// ## Ownership
-/// `ParcelSession` is owned by the Driver for the lifetime of a single
+/// `PackSession` is owned by the Driver for the lifetime of a single
 /// compilation. It outlives all `ParseResult`s it contains, ensuring that
 /// `InternedStr` IDs remain valid for cross-file comparisons throughout
 /// every compiler pass.
 ///
-/// ## Parcel model
-/// A parcel is the Eter compilation unit: one root `.et` file plus all files
+/// ## Pack model
+/// A pack is the Eter compilation unit: one root `.et` file plus all files
 /// transitively reachable via `mod foo;` declarations. `eterc` receives only
 /// the root file path, no manifest. Future works may add a separate build tool,
 // the Courier, that reads `Eter.toml` and invokes `eterc` with the appropriate
 /// root.
 ///
 /// ## StringInterner sharing
-/// All files in a parcel share the same `StringInterner`. This guarantees that
+/// All files in a pack share the same `StringInterner`. This guarantees that
 /// interning the same identifier string in two different files produces the
 /// same `InternedStr` ID, enabling O(1) cross-file name comparison in every
 /// subsequent semantic pass.
-struct ParcelSession {
-  /// String interner shared across all source files in the parcel.
+struct PackSession {
+  /// String interner shared across all source files in the pack.
   parser::StringInterner Interner;
 
   /// Parse results keyed by canonical file path, one entry per source file.
@@ -49,4 +49,4 @@ struct ParcelSession {
 
 } // namespace eter
 
-#endif // ETER_DRIVER_PARCELSESSION_H
+#endif // ETER_DRIVER_PACKSESSION_H

@@ -13,7 +13,7 @@
 #include "eter/Base/SourceBuffer.h"
 #include "eter/Base/SourceManager.h"
 #include "eter/Driver/Driver.h"
-#include "eter/Driver/ParcelSession.h"
+#include "eter/Driver/PackSession.h"
 #include "eter/Driver/Version.h"
 #include "eter/Lexer/Lexer.h"
 #include "eter/Parser/NodePool.h"
@@ -100,7 +100,7 @@ int Driver::run() {
   }
 
   for (const auto &InputFilename : Options.InputFiles) {
-    const int Result = compileParcel(InputFilename);
+    const int Result = compilePack(InputFilename);
     if (Result != 0)
       return Result;
   }
@@ -108,25 +108,25 @@ int Driver::run() {
   return 0;
 }
 
-int Driver::compileParcel(const std::string &RootFile) {
-  ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] compileParcel root=" << RootFile
+int Driver::compilePack(const std::string &RootFile) {
+  ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] compilePack root=" << RootFile
                           << "\n");
 
-  ParcelSession Session;
+  PackSession Session;
   llvm::StringSet<> InProgress;
 
   const int Rc = parseFile(RootFile, Session, InProgress);
   if (Rc != 0)
     return Rc;
 
-  ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] parcel parsed: "
+  ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] pack parsed: "
                           << Session.Results.size() << " file(s)\n");
 
   // TODO: semantic analysis, lowering to MLIR, optimisation, codegen.
   return 0;
 }
 
-int Driver::parseFile(const std::string &Path, ParcelSession &Session,
+int Driver::parseFile(const std::string &Path, PackSession &Session,
                       llvm::StringSet<> &InProgress) {
   // Already parsedm, nothing to do.
   if (Session.Results.count(Path))
@@ -155,8 +155,8 @@ int Driver::parseFile(const std::string &Path, ParcelSession &Session,
   lexer::Lexer L;
   // Lex errors must be captured before TokenStream is moved into parse().
   parser::TokenStream TS(L.lex(*ExpectedBuf), ExpectedBuf->getBuffer());
-  std::vector<lexer::LexerError> LexErrs(TS.lexErrors().begin(),
-                                         TS.lexErrors().end());
+  const std::vector<lexer::LexerError> LexErrs(TS.lexErrors().begin(),
+                                               TS.lexErrors().end());
 
   // Parse.
   parser::ParseResult Result =
@@ -183,12 +183,12 @@ int Driver::parseFile(const std::string &Path, ParcelSession &Session,
     if (Pool.kindOf(Child) != parser::NodeKind::ModDeclFile)
       continue;
 
-    llvm::StringRef ModName =
+    const llvm::StringRef ModName =
         Session.Interner.get(parser::NodePool::payloadStr(Pool[Child].Payload));
 
     // Try foo.et, then foo/mod.et (similar to Rust 2018 convention).
-    std::string FileDotEt = (Dir / (ModName.str() + ".et")).string();
-    std::string ModDotEt = (Dir / ModName.str() / "mod.et").string();
+    const std::string FileDotEt = (Dir / (ModName.str() + ".et")).string();
+    const std::string ModDotEt = (Dir / ModName.str() / "mod.et").string();
 
     std::string ChildPath;
     if (std::filesystem::exists(FileDotEt))

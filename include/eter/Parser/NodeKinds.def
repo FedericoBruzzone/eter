@@ -84,7 +84,7 @@ ETER_DECL(ModDecl)
 
 /// File-based module declaration: mod name ;
 /// The Driver resolves this to a source file (foo.eter or foo/mod.eter) and
-/// parses it as a separate parcel unit. Resolved files share the same
+/// parses it as a separate pack unit. Resolved files share the same
 /// StringInterner as the root, enabling O(1) cross-file name comparison.
 /// Children: [].  Payload: InternedStr (module name).
 ETER_DECL(ModDeclFile)

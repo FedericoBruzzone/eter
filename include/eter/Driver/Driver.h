@@ -48,20 +48,20 @@ public:
   void printVersion() const;
 
 private:
-  /// Compile a complete parcel rooted at `RootFile`.
+  /// Compile a complete pack rooted at `RootFile`.
   /// Discovers all reachable source files via `mod foo;` declarations,
   /// parses them with a shared `StringInterner`, and stores the results in
-  /// a `ParcelSession`.
+  /// a `PackSession`.
   /// \returns 0 on success, non-zero error code on failure.
-  int compileParcel(const std::string &RootFile);
+  int compilePack(const std::string &RootFile);
 
   /// Parse one source file and, recursively, all files it references via
   /// `mod foo;`. Detects circular dependencies via `InProgress`.
   /// \param Path       Canonical path of the file to parse.
-  /// \param Session    The shared parcel session (interner + results).
+  /// \param Session    The shared pack session (interner + results).
   /// \param InProgress Set of paths currently being parsed (cycle detection).
   /// \returns 0 on success, non-zero on I/O or fatal error.
-  int parseFile(const std::string &Path, struct ParcelSession &Session,
+  int parseFile(const std::string &Path, struct PackSession &Session,
                 llvm::StringSet<> &InProgress);
 
   CompilerOptions Options;

@@ -30,7 +30,7 @@ namespace eter::name_resolution {
 ///
 /// ## Global vs. local definitions
 /// Top-level items (`fn`, `struct`, `enum`, `mod`, `const`) receive a
-/// `DefIndex` that is globally unique within a parcel. Local definitions
+/// `DefIndex` that is globally unique within a pack. Local definitions
 /// (`let` bindings, function parameters) receive a `DefIndex` that is unique
 /// within their enclosing function scope — analogous to rustc's `LocalDefId`.
 /// Both are represented by the same `DefIndex` type; the distinction is
@@ -67,9 +67,9 @@ inline constexpr DefIndex InvalidDef{};
 ///   (e.g. `"mod::fn_name::x#0"`).
 ///
 /// ## Usage
-/// One `DefIndexBuilder` per parcel (not per file), constructed with the
-/// parcel's shared `StringInterner`. Call `build` once per `ParseResult`
-/// after all files in the parcel have been parsed.
+/// One `DefIndexBuilder` per pack (not per file), constructed with the
+/// pack's shared `StringInterner`. Call `build` once per `ParseResult`
+/// after all files in the pack have been parsed.
 class DefIndexBuilder {
 public:
   explicit DefIndexBuilder(parser::StringInterner &Interner);
