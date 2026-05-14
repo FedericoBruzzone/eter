@@ -82,7 +82,8 @@ struct NodeData {
   uint32_t ChildrenBegin; ///< 4 bytes: start index into NodePool::Children
   uint32_t Payload;       ///< 4 bytes: see encoding above
   Span Span;              ///< 8 bytes: source byte range [Start, End).
-}; //  20 bytes total: 3 nodes per 64-byte cache line
+                          //  20 bytes total: 3 nodes per 64-byte cache line
+};
 
 static_assert(sizeof(NodeData) == 20, "NodeData layout changed unexpectedly");
 
