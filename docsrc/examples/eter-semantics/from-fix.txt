@@ -6,33 +6,33 @@
 
 
 // ==========
-// Fix to Fix
+// Imm to Imm
 // ==========
-fn f(fix x: i32) {}
+fn f(imm x: i32) {}
 fn main() {
-    let fix x: i32 = 1;
-    let fix y: i32 = x;
+    let imm x: i32 = 1;
+    let imm y: i32 = x;
     f(x);
 }
 
 // ==========
-// Fix to Mut
+// Imm to Mut
 // ==========
 fn f(mut x: i32) {}
 fn main() {
-    let fix x: i32 = 1;
-    // let mut y: i32 = x; // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
-    // f(x); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    let imm x: i32 = 1;
+    // let mut y: i32 = x; // ERROR: Changing the regime from imm to mut is not allowed. Need to copy.
+    // f(x); // ERROR: Changing the regime from imm to mut is not allowed. Need to copy.
 }
 
 // ===========
-// Fix to Proj
+// Imm to Proj
 // ===========
 fn f(proj x: i32) {}
 fn main() {
     let x: i32 = 1;
-    // let proj y: i32 = &x; // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
-    // f(&x); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    // let proj y: i32 = &x; // ERROR: Changing the regime from imm to proj is not allowed. Need to copy.
+    // f(&x); // ERROR: Changing the regime from imm to proj is not allowed. Need to copy.
 }
 
 // ========================================================================
@@ -42,255 +42,255 @@ fn main() {
 // ========================================================================
 
 // ==========
-// Fix to Fix
+// Imm to Imm
 // ==========
-fn f(fix x: [i32; 3]) {}
+fn f(imm x: [i32; 3]) {}
 fn main() {
-    let fix x: [i32; 3] = [1, 2, 3];
-    let fix y: [i32; 3] = x; // O(1)
+    let imm x: [i32; 3] = [1, 2, 3];
+    let imm y: [i32; 3] = x; // O(1)
     f(x); // O(1)
 }
 
 // ==========
-// Fix to Mut
+// Imm to Mut
 // ==========
 fn f(mut x: [i32; 3]) {}
 fn main() {
-    let fix x: [i32; 3] = [1, 2, 3];
-    // let mut y: [i32; 3] = x; // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
-    // f(x); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    let imm x: [i32; 3] = [1, 2, 3];
+    // let mut y: [i32; 3] = x; // ERROR: Changing the regime from imm to mut is not allowed. Need to copy.
+    // f(x); // ERROR: Changing the regime from imm to mut is not allowed. Need to copy.
 }
 
 // ===========
-// Fix to Proj
+// Imm to Proj
 // ===========
 fn f(proj x: [i32; 3]) {}
 fn main() {
-    let fix x: [i32; 3] = [1, 2, 3];
-    // let proj y: [i32; 3] = &x; // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
-    // f(&x); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    let imm x: [i32; 3] = [1, 2, 3];
+    // let proj y: [i32; 3] = &x; // ERROR: Changing the regime from imm to proj is not allowed. Need to copy.
+    // f(&x); // ERROR: Changing the regime from imm to proj is not allowed. Need to copy.
 }
 
 // ========================================================================
 // ========================================================================
-// Structs with Fix
+// Structs with Imm
 // ========================================================================
 // ========================================================================
 
 struct Point {
-    fix x: i32,
-    fix y: i32,
+    imm x: i32,
+    imm y: i32,
 }
 
 // ==========
-// Fix to Fix
+// Imm to Imm
 // ==========
-fn f(fix p: Point) {}
+fn f(imm p: Point) {}
 fn main() {
-    let fix p = Point { x: 1, y: 2 };
-    let fix q = p;
+    let imm p = Point { x: 1, y: 2 };
+    let imm q = p;
     f(p);
 }
 
 // ==========
-// Fix to Mut
+// Imm to Mut
 // ==========
 fn f(mut p: Point) {}
 fn main() {
-    let fix p = Point { x: 1, y: 2 };
-    // let mut q = p; // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
-    // f(p); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    let imm p = Point { x: 1, y: 2 };
+    // let mut q = p; // ERROR: Changing the regime from imm to mut is not allowed. Need to copy.
+    // f(p); // ERROR: Changing the regime from imm to mut is not allowed. Need to copy.
 }
 
 // ===========
-// Fix to Proj
+// Imm to Proj
 // ===========
 fn f(proj p: Point) {}
 fn main() {
-    let fix p = Point { x: 1, y: 2 };
-    // let proj q = &p; // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
-    // f(&p); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    let imm p = Point { x: 1, y: 2 };
+    // let proj q = &p; // ERROR: Changing the regime from imm to proj is not allowed. Need to copy.
+    // f(&p); // ERROR: Changing the regime from imm to proj is not allowed. Need to copy.
 }
 
 // ========================================================================
 // ========================================================================
-// Fix-Fix as return and formal parameter
+// Imm-Imm as return and formal parameter
 // ========================================================================
 // ========================================================================
 
 // ==========
-// Fix-Fix to Fix
+// Imm-Imm to Imm
 // ==========
-fn fix f(fix p: Point): Point { p }
+fn imm f(imm p: Point): Point { p }
 fn main() {
-    let fix p = Point { x: 1, y: 2 };
-    let fix q = f(p);
+    let imm p = Point { x: 1, y: 2 };
+    let imm q = f(p);
 }
 
-fn fix f2(fix p1: Point, fix p2: Point): Point { p1 }
+fn imm f2(imm p1: Point, imm p2: Point): Point { p1 }
 fn main() {
-    let fix p1 = Point { x: 1, y: 2 };
-    let fix p2 = Point { x: 3, y: 4 };
-    let fix q = f2(p1, p2);
+    let imm p1 = Point { x: 1, y: 2 };
+    let imm p2 = Point { x: 3, y: 4 };
+    let imm q = f2(p1, p2);
 }
 
 // ==========
-// Fix-Fix to Mut
+// Imm-Imm to Mut
 // ==========
-fn fix f(fix p: Point): Point { p }
+fn imm f(imm p: Point): Point { p }
 fn main() {
-    let fix p = Point { x: 1, y: 2 };
-    // let mut q = f(p); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    let imm p = Point { x: 1, y: 2 };
+    // let mut q = f(p); // ERROR: Changing the regime from imm to mut is not allowed. Need to copy.
 }
 
-fn fix f2(fix p1: Point, fix p2: Point): Point { p1 }
+fn imm f2(imm p1: Point, imm p2: Point): Point { p1 }
 fn main() {
-    let fix p1 = Point { x: 1, y: 2 };
-    let fix p2 = Point { x: 3, y: 4 };
-    // let mut q = f2(p1, p2); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    let imm p1 = Point { x: 1, y: 2 };
+    let imm p2 = Point { x: 3, y: 4 };
+    // let mut q = f2(p1, p2); // ERROR: Changing the regime from imm to mut is not allowed. Need to copy.
 }
 
 // ===========
-// Fix-Fix to Proj
+// Imm-Imm to Proj
 // ===========
-fn fix f(fix p: Point): Point { p }
+fn imm f(imm p: Point): Point { p }
 fn main() {
-    let fix p = Point { x: 1, y: 2 };
-    // let proj q = &f(p); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    let imm p = Point { x: 1, y: 2 };
+    // let proj q = &f(p); // ERROR: Changing the regime from imm to proj is not allowed. Need to copy.
 }
 
-fn fix f2(fix p1: Point, fix p2: Point): Point { p1 }
+fn imm f2(imm p1: Point, imm p2: Point): Point { p1 }
 fn main() {
-    let fix p1 = Point { x: 1, y: 2 };
-    let fix p2 = Point { x: 3, y: 4 };
-    // let proj q = &f2(p1, p2); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    let imm p1 = Point { x: 1, y: 2 };
+    let imm p2 = Point { x: 3, y: 4 };
+    // let proj q = &f2(p1, p2); // ERROR: Changing the regime from imm to proj is not allowed. Need to copy.
 }
 
 // ========================================================================
 // ========================================================================
-// Fix-Mut as return and formal parameter
+// Imm-Mut as return and formal parameter
 // ========================================================================
 // ========================================================================
 
 // ==========
-// Fix-Mut to Fix
+// Imm-Mut to Imm
 // ==========
-fn fix f(mut p: Point): Point { p }
+fn imm f(mut p: Point): Point { p }
 fn main() {
     let mut p = Point { x: 1, y: 2 };
-    let fix q = f(p);
+    let imm q = f(p);
 }
 
-fn fix f2(mut p1: Point, mut p2: Point): Point { p1 }
+fn imm f2(mut p1: Point, mut p2: Point): Point { p1 }
 fn main() {
     let mut p1 = Point { x: 1, y: 2 };
     let mut p2 = Point { x: 3, y: 4 };
-    let fix q = f2(p1, p2);
+    let imm q = f2(p1, p2);
 }
 
 // ==========
-// Fix-Mut to Mut
+// Imm-Mut to Mut
 // ==========
-fn fix f(mut p: Point): Point { p }
+fn imm f(mut p: Point): Point { p }
 fn main() {
     let mut p = Point { x: 1, y: 2 };
-    // let mut q = f(p); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    // let mut q = f(p); // ERROR: Changing the regime from imm to mut is not allowed. Need to copy.
 }
 
-fn fix f2(mut p1: Point, mut p2: Point): Point { p1 }
+fn imm f2(mut p1: Point, mut p2: Point): Point { p1 }
 fn main() {
     let mut p1 = Point { x: 1, y: 2 };
     let mut p2 = Point { x: 3, y: 4 };
-    // let mut q = f2(p1, p2); // ERROR: Changing the regime from fix to mut is not allowed. Need to copy.
+    // let mut q = f2(p1, p2); // ERROR: Changing the regime from imm to mut is not allowed. Need to copy.
 }
 
 // ===========
-// Fix-Mut to Proj
+// Imm-Mut to Proj
 // ===========
-fn fix f(mut p: Point): Point { p }
+fn imm f(mut p: Point): Point { p }
 fn main() {
     let mut p = Point { x: 1, y: 2 };
-    // let proj q = &f(p); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    // let proj q = &f(p); // ERROR: Changing the regime from imm to proj is not allowed. Need to copy.
 }
 
-fn fix f2(mut p1: Point, mut p2: Point): Point { p1 }
+fn imm f2(mut p1: Point, mut p2: Point): Point { p1 }
 fn main() {
     let mut p1 = Point { x: 1, y: 2 };
     let mut p2 = Point { x: 3, y: 4 };
-    // let proj q = &f2(p1, p2); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    // let proj q = &f2(p1, p2); // ERROR: Changing the regime from imm to proj is not allowed. Need to copy.
 }
 
 // ========================================================================
 // ========================================================================
-// Fix-Proj as return and formal parameter
+// Imm-Proj as return and formal parameter
 // ========================================================================
 // ========================================================================
 
 
 // ==========
-// Fix-Proj to Fix
+// Imm-Proj to Imm
 // ==========
-fn fix f(proj p: Point): Point {
-    // p // ERROR: Escaping the return of a proj to a fix is not allowed. Need to copy.
+fn imm f(proj p: Point): Point {
+    // p // ERROR: Escaping the return of a proj to a imm is not allowed. Need to copy.
 }
 fn main() {
     let proj p = &Point { x: 1, y: 2 };
-    let fix q = f(&p);
+    let imm q = f(&p);
 }
 
-fn fix f2(proj p1: Point, proj p2: Point): Point {
-    // p1 // ERROR: Escaping the return of a proj to a fix is not allowed. Need to copy.
+fn imm f2(proj p1: Point, proj p2: Point): Point {
+    // p1 // ERROR: Escaping the return of a proj to a imm is not allowed. Need to copy.
 }
 fn main() {
     let proj p1 = &Point { x: 1, y: 2 }
     let proj p2 = &Point { x: 3, y: 4 };
-    let fix q = f2(&p1, &p2);
+    let imm q = f2(&p1, &p2);
 }
 
 // ==========
-// Fix-Proj to Mut
+// Imm-Proj to Mut
 // ==========
-fn fix f(proj p: Point): Point {
-    // p // ERROR: Escaping the return of a proj to a fix is not allowed. Need to copy.
+fn imm f(proj p: Point): Point {
+    // p // ERROR: Escaping the return of a proj to a imm is not allowed. Need to copy.
 }
 fn main() {
     let proj p = &Point { x: 1, y: 2 };
-    let fix q = f(&p);
+    let imm q = f(&p);
 }
 
-fn fix f2(proj p1: Point, proj p2: Point): Point {
-    p1 // ERROR: Escaping the return of a proj to a fix is not allowed. Need to copy.
+fn imm f2(proj p1: Point, proj p2: Point): Point {
+    p1 // ERROR: Escaping the return of a proj to a imm is not allowed. Need to copy.
 }
 fn main() {
     let proj p1 = &Point { x: 1, y: 2 };
     let proj p2 = &Point { x: 3, y: 4 };
-    let fix q = f2(&p1, &p2);
+    let imm q = f2(&p1, &p2);
 }
 
 // ===========
-// Fix-Proj to Proj
+// Imm-Proj to Proj
 // ===========
-fn fix f(proj p: Point): Point {
-    // p // ERROR: Escaping the return of a proj to a fix is not allowed. Need to copy.
+fn imm f(proj p: Point): Point {
+    // p // ERROR: Escaping the return of a proj to a imm is not allowed. Need to copy.
 }
 fn main() {
     let proj p = &Point { x: 1, y: 2 };
-    // let proj q = &f(&p); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    // let proj q = &f(&p); // ERROR: Changing the regime from imm to proj is not allowed. Need to copy.
 }
 
-fn fix f2(proj p1: Point, proj p2: Point): Point {
-    // p1 // ERROR: Escaping the return of a proj to a fix is not allowed. Need to copy.
+fn imm f2(proj p1: Point, proj p2: Point): Point {
+    // p1 // ERROR: Escaping the return of a proj to a imm is not allowed. Need to copy.
 }
 fn main() {
     let proj p1 = &Point { x: 1, y: 2 };
     let proj p2 = &Point { x: 3, y: 4 };
-    // let proj q = &f2(&p1, &p2); // ERROR: Changing the regime from fix to proj is not allowed. Need to copy.
+    // let proj q = &f2(&p1, &p2); // ERROR: Changing the regime from imm to proj is not allowed. Need to copy.
 }
 
 
 // ========================================================================
 // ========================================================================
-// Store Fix in Struct from Fix
+// Store Imm in Struct from Imm
 // ========================================================================
 // ========================================================================
 
@@ -299,24 +299,24 @@ fn main() {
 // ==========
 
 struct Point {
-    fix x: i32,
-    fix y: i32,
+    imm x: i32,
+    imm y: i32,
 }
 
-fn fix f(fix p: Point): Point {
-    let fix x = p.x;
-    let fix y = p.y;
+fn imm f(imm p: Point): Point {
+    let imm x = p.x;
+    let imm y = p.y;
     Point { x, y }
 }
 
 fn tmp1() {
-    let fix p1 = Point { x: 1, y: 2 };
-    let fix p2 = f(p1);
+    let imm p1 = Point { x: 1, y: 2 };
+    let imm p2 = f(p1);
 }
 
 // OPTIMIZATION: to avoid copy and reference counting
 // fn tmp2() {
-//     let fix p2;
+//     let imm p2;
 //     let tmp = Point { x: 1, y: 2 };
 //     {
 //         let p1 = tmp;
@@ -324,33 +324,33 @@ fn tmp1() {
 //     }
 // }
 fn tmp2() {
-    let fix p2;
+    let imm p2;
     {
-        let fix p1 = Point { x: 1, y: 2 };
+        let imm p1 = Point { x: 1, y: 2 };
         p2 = f(p1);
     }
 }
 
 // ==========
-// Fix-Fix-Fix as return and formal parameters from Fix
+// Imm-Imm-Imm as return and formal parameters from Imm
 // =========
 
 struct Point {
-    fix x: i32,
-    fix y: i32,
+    imm x: i32,
+    imm y: i32,
 }
 
-fn fix f(fix p: Point, fix u: Point): Point {
+fn imm f(imm p: Point, imm u: Point): Point {
     // u is not used
-    let fix x = p.x;
-    let fix y = p.y;
+    let imm x = p.x;
+    let imm y = p.y;
     Point { x, y }
 }
 
 fn tmp1() {
-    let fix p1 = Point { x: 1, y: 2 };
-    let fix p2 = Point { x: 3, y: 4 };
-    let fix p2 = f(p1, p2);
+    let imm p1 = Point { x: 1, y: 2 };
+    let imm p2 = Point { x: 3, y: 4 };
+    let imm p2 = f(p1, p2);
 }
 
 // OPTIMIZATION: to avoid copy and reference counting
@@ -364,10 +364,10 @@ fn tmp1() {
 //     }
 // }
 fn tmp2() {
-    let fix p2;
-    let fix p = Point { x: 1, y: 2 };
+    let imm p2;
+    let imm p = Point { x: 1, y: 2 };
     {
-        let fix u = Point { x: 3, y: 4 };
+        let imm u = Point { x: 3, y: 4 };
         p2 = f(p, u);
     }
 }
@@ -375,25 +375,25 @@ fn tmp2() {
 
 
 // ==========
-// Fix-Fix-Mut as return and formal parameters from Fix
+// Imm-Imm-Mut as return and formal parameters from Imm
 // =========
 
 struct Point {
-    fix x: i32,
-    fix y: i32,
+    imm x: i32,
+    imm y: i32,
 }
 
-fn fix f(fix p: Point, mut u: Point): Point {
+fn imm f(imm p: Point, mut u: Point): Point {
     // u is not used
-    let fix x = p.x;
-    let fix y = p.y;
+    let imm x = p.x;
+    let imm y = p.y;
     Point { x, y }
 }
 
 fn tmp1() {
-    let fix p1 = Point { x: 1, y: 2 };
+    let imm p1 = Point { x: 1, y: 2 };
     let mut p2 = Point { x: 1, y: 2 };
-    let fix p3 = f(p1, p2);
+    let imm p3 = f(p1, p2);
     // - p2 is moved, so it is not used anymore
     // - p1 can be used again
 }
@@ -410,8 +410,8 @@ fn tmp1() {
 //     }
 // }
 fn tmp2() {
-    let fix p3;
-    let fix p1 = Point { x: 1, y: 2 };
+    let imm p3;
+    let imm p1 = Point { x: 1, y: 2 };
     {
         let mut p2 = Point { x: 3, y: 4 };
         p3 = f(p1, p2);
@@ -421,28 +421,28 @@ fn tmp2() {
 }
 
 // ==========
-// Fix-Fix-Proj as return and formal parameters from Fix
+// Imm-Imm-Proj as return and formal parameters from Imm
 // =========
 
 
 struct Point {
-    fix x: i32,
-    fix y: i32,
+    imm x: i32,
+    imm y: i32,
 }
 
-fn fix f(fix p: Point, proj u: Point): Point {
+fn imm f(imm p: Point, proj u: Point): Point {
     // u is not used
-    let fix x = p.x;
-    let fix y = p.y;
+    let imm x = p.x;
+    let imm y = p.y;
     &p.x = 10;
     &p.y = 20;
     Point { x, y }
 }
 
 fn tmp1() {
-    let fix p1 = Point { x: 1, y: 2 };
+    let imm p1 = Point { x: 1, y: 2 };
     let mut p2 = Point { x: 1, y: 2 };
-    let fix p3 = f(p1, &p2);
+    let imm p3 = f(p1, &p2);
     // - p2 is projected, so it is can be used again
     // - p1 can be used again
 }
@@ -459,8 +459,8 @@ fn tmp1() {
 //     }
 // }
 fn tmp2() {
-    let fix p3;
-    let fix p1 = Point { x: 1, y: 2 };
+    let imm p3;
+    let imm p1 = Point { x: 1, y: 2 };
     {
         let mut p2 = Point { x: 3, y: 4 };
         p3 = f(p1, &p2);
@@ -471,7 +471,7 @@ fn tmp2() {
 
 // ========================================================================
 // ========================================================================
-// Store Mut in Struct from Fix
+// Store Mut in Struct from Imm
 // ========================================================================
 // ========================================================================
 
@@ -484,27 +484,27 @@ struct Point {
     mut y: i32,
 }
 
-fn fix f(fix p: Point): Point {
-    // let mut x = p.x; // ERROR: p is under the regime fix, it propagates to the whole struct.
-    // let mut y = p.y; // ERROR: p is under the regime fix, it propagates to the whole struct.
+fn imm f(imm p: Point): Point {
+    // let mut x = p.x; // ERROR: p is under the regime imm, it propagates to the whole struct.
+    // let mut y = p.y; // ERROR: p is under the regime imm, it propagates to the whole struct.
     Point { x, y }
 }
 
 fn tmp1() {
-    let fix p1 = Point { x: 1, y: 2 };
-    let fix p2 = f(p1);
+    let imm p1 = Point { x: 1, y: 2 };
+    let imm p2 = f(p1);
 }
 
 fn tmp2() {
-    let fix p2;
+    let imm p2;
     {
-        let fix p1 = Point { x: 1, y: 2 };
+        let imm p1 = Point { x: 1, y: 2 };
         p2 = f(p1);
     }
 }
 
 // ==========
-// Fix-Fix-Fix as return and formal parameters from Fix
+// Imm-Imm-Imm as return and formal parameters from Imm
 // =========
 
 struct Point {
@@ -512,17 +512,17 @@ struct Point {
     mut y: i32,
 }
 
-fn fix f(fix p: Point, fix u: Point): Point {
+fn imm f(imm p: Point, imm u: Point): Point {
     // u is not used
-    // let mut x = p.x; // ERROR: p is under the regime fix, it propagates to the whole struct.
-    // let mut y = p.y; // ERROR: p is under the regime fix, it propagates to the whole struct.
+    // let mut x = p.x; // ERROR: p is under the regime imm, it propagates to the whole struct.
+    // let mut y = p.y; // ERROR: p is under the regime imm, it propagates to the whole struct.
     Point { x, y }
 }
 
 fn tmp1() {
-    let fix p1 = Point { x: 1, y: 2 };
-    let fix p2 = Point { x: 3, y: 4 };
-    let fix p2 = f(p1, p2);
+    let imm p1 = Point { x: 1, y: 2 };
+    let imm p2 = Point { x: 3, y: 4 };
+    let imm p2 = f(p1, p2);
 }
 
 // OPTIMIZATION: to avoid copy and reference counting
@@ -536,16 +536,16 @@ fn tmp1() {
 //     }
 // }
 fn tmp2() {
-    let fix p2;
-    let fix p = Point { x: 1, y: 2 };
+    let imm p2;
+    let imm p = Point { x: 1, y: 2 };
     {
-        let fix u = Point { x: 3, y: 4 };
+        let imm u = Point { x: 3, y: 4 };
         p2 = f(p, u);
     }
 }
 
 // ==========
-// Fix-Fix-Mut as return and formal parameters from Fix
+// Imm-Imm-Mut as return and formal parameters from Imm
 // =========
 
 struct Point {
@@ -553,24 +553,24 @@ struct Point {
     mut y: i32,
 }
 
-fn fix f(fix p: Point, mut u: Point): Point {
+fn imm f(imm p: Point, mut u: Point): Point {
     // u is not used
-    // let mut x = p.x; // ERROR: p is under the regime fix, it propagates to the whole struct.
-    // let mut y = p.y; // ERROR: p is under the regime fix, it propagates to the whole struct.
+    // let mut x = p.x; // ERROR: p is under the regime imm, it propagates to the whole struct.
+    // let mut y = p.y; // ERROR: p is under the regime imm, it propagates to the whole struct.
     Point { x, y }
 }
 
 fn tmp1() {
-    let fix p1 = Point { x: 1, y: 2 };
+    let imm p1 = Point { x: 1, y: 2 };
     let mut p2 = Point { x: 1, y: 2 };
-    let fix p3 = f(p1, p2);
+    let imm p3 = f(p1, p2);
     // - p2 is moved, so it is not used anymore
     // - p1 can be used again
 }
 
 fn tmp2() {
-    let fix p3;
-    let fix p1 = Point { x: 1, y: 2 };
+    let imm p3;
+    let imm p1 = Point { x: 1, y: 2 };
     {
         let mut p2 = Point { x: 3, y: 4 };
         p3 = f(p1, p2);
@@ -580,7 +580,7 @@ fn tmp2() {
 }
 
 // ==========
-// Fix-Fix-Proj as return and formal parameters from Fix
+// Imm-Imm-Proj as return and formal parameters from Imm
 // =========
 
 struct Point {
@@ -588,24 +588,24 @@ struct Point {
     mut y: i32,
 }
 
-fn fix f(fix p: Point, proj u: Point): Point {
+fn imm f(imm p: Point, proj u: Point): Point {
     // u is not used
-    // let mut x = p.x; // ERROR: p is under the regime fix, it propagates to the whole struct.
-    // let mut y = p.y; // ERROR: p is under the regime fix, it propagates to the whole struct.
+    // let mut x = p.x; // ERROR: p is under the regime imm, it propagates to the whole struct.
+    // let mut y = p.y; // ERROR: p is under the regime imm, it propagates to the whole struct.
     Point { x, y }
 }
 
 fn tmp1() {
-    let fix p1 = Point { x: 1, y: 2 };
+    let imm p1 = Point { x: 1, y: 2 };
     let mut p2 = Point { x: 1, y: 2 };
-    let fix p3 = f(p1, &p2);
+    let imm p3 = f(p1, &p2);
     // - p2 is projected, so it is can be used again
     // - p1 can be used again
 }
 
 fn tmp2() {
-    let fix p3;
-    let fix p1 = Point { x: 1, y: 2 };
+    let imm p3;
+    let imm p1 = Point { x: 1, y: 2 };
     {
         let mut p2 = Point { x: 3, y: 4 };
         p3 = f(p1, &p2);
@@ -616,7 +616,7 @@ fn tmp2() {
 
 // ========================================================================
 // ========================================================================
-// Store Proj in Struct from Fix
+// Store Proj in Struct from Imm
 // ========================================================================
 // ========================================================================
 
@@ -629,9 +629,9 @@ struct Point {
     proj y: i32,
 }
 
-fn fix f(proj p: Point): Point {
-    // let proj x = &p.x; // ERROR: p is under the regime fix, it propagates to the whole struct.
-    // let proj y = &p.y; // ERROR: p is under the regime fix, it propagates to the whole struct.
+fn imm f(proj p: Point): Point {
+    // let proj x = &p.x; // ERROR: p is under the regime imm, it propagates to the whole struct.
+    // let proj y = &p.y; // ERROR: p is under the regime imm, it propagates to the whole struct.
     &Point { x, y }
 }
 
@@ -660,7 +660,7 @@ fn tmp2() {
 }
 
 // ==========
-// Fix-Fix-Fix as return and formal parameters from Fix
+// Imm-Imm-Imm as return and formal parameters from Imm
 // =========
 
 struct Point {
@@ -668,30 +668,30 @@ struct Point {
     proj y: i32,
 }
 
-fn fix f(fix p: Point, fix u: Point): Point {
+fn imm f(imm p: Point, imm u: Point): Point {
     // u is not used
-    // let proj x = p.x; // ERROR: p is under the regime fix, it propagates to the whole struct.
-    // let proj y = p.y; // ERROR: p is under the regime fix, it propagates to the whole struct.
+    // let proj x = p.x; // ERROR: p is under the regime imm, it propagates to the whole struct.
+    // let proj y = p.y; // ERROR: p is under the regime imm, it propagates to the whole struct.
     Point { x, y }
 }
 
 fn tmp1() {
-    let fix p1 = Point { x: 1, y: 2 };
-    let fix p2 = Point { x: 3, y: 4 };
-    let fix p2 = f(p1, p2);
+    let imm p1 = Point { x: 1, y: 2 };
+    let imm p2 = Point { x: 3, y: 4 };
+    let imm p2 = f(p1, p2);
 }
 
 fn tmp2() {
-    let fix p2;
-    let fix p = Point { x: 1, y: 2 };
+    let imm p2;
+    let imm p = Point { x: 1, y: 2 };
     {
-        let fix u = Point { x: 3, y: 4 };
+        let imm u = Point { x: 3, y: 4 };
         p2 = f(p, u);
     }
 }
 
 // ==========
-// Fix-Fix-Mut as return and formal parameters from Fix
+// Imm-Imm-Mut as return and formal parameters from Imm
 // =========
 
 struct Point {
@@ -699,24 +699,24 @@ struct Point {
     proj y: i32,
 }
 
-fn fix f(fix p: Point, mut u: Point): Point {
+fn imm f(imm p: Point, mut u: Point): Point {
     // u is not used
-    // let proj x = p.x; // ERROR: p is under the regime fix, it propagates to the whole struct.
-    // let proj y = p.y; // ERROR: p is under the regime fix, it propagates to the whole struct.
+    // let proj x = p.x; // ERROR: p is under the regime imm, it propagates to the whole struct.
+    // let proj y = p.y; // ERROR: p is under the regime imm, it propagates to the whole struct.
     Point { x, y }
 }
 
 fn tmp1() {
-    let fix p1 = Point { x: 1, y: 2 };
+    let imm p1 = Point { x: 1, y: 2 };
     let mut p2 = Point { x: 1, y: 2 };
-    let fix p3 = f(p1, p2);
+    let imm p3 = f(p1, p2);
     // - p2 is moved, so it is not used anymore
     // - p1 can be used again
 }
 
 fn tmp2() {
-    let fix p3;
-    let fix p1 = Point { x: 1, y: 2 };
+    let imm p3;
+    let imm p1 = Point { x: 1, y: 2 };
     {
         let mut p2 = Point { x: 3, y: 4 };
         p3 = f(p1, p2);
@@ -726,7 +726,7 @@ fn tmp2() {
 }
 
 // ==========
-// Fix-Fix-Proj as return and formal parameters from Fix
+// Imm-Imm-Proj as return and formal parameters from Imm
 // =========
 
 struct Point {
@@ -734,24 +734,24 @@ struct Point {
     proj y: i32,
 }
 
-fn fix f(fix p: Point, proj u: Point): Point {
+fn imm f(imm p: Point, proj u: Point): Point {
     // u is not used
-    // let proj x = p.x; // ERROR: p is under the regime fix, it propagates to the whole struct.
-    // let proj y = p.y; // ERROR: p is under the regime fix, it propagates to the whole struct.
+    // let proj x = p.x; // ERROR: p is under the regime imm, it propagates to the whole struct.
+    // let proj y = p.y; // ERROR: p is under the regime imm, it propagates to the whole struct.
     Point { x, y }
 }
 
 fn tmp1() {
-    let fix p1 = Point { x: 1, y: 2 };
+    let imm p1 = Point { x: 1, y: 2 };
     let mut p2 = Point { x: 1, y: 2 };
-    let fix p3 = f(p1, &p2);
+    let imm p3 = f(p1, &p2);
     // - p2 is projected, so it is can be used again
     // - p1 can be used again
 }
 
 fn tmp2() {
-    let fix p3;
-    let fix p1 = Point { x: 1, y: 2 };
+    let imm p3;
+    let imm p1 = Point { x: 1, y: 2 };
     {
         let mut p2 = Point { x: 3, y: 4 };
         p3 = f(p1, &p2);
