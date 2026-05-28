@@ -434,8 +434,8 @@ fn imm f(imm p: Point, proj u: Point): Point {
     // u is not used
     let imm x = p.x;
     let imm y = p.y;
-    &p.x = 10;
-    &p.y = 20;
+    *p.x = 10; // Re-initialize the projection.
+    *p.y = 20; // Re-initialize the projection.
     Point { x, y }
 }
 
@@ -629,10 +629,10 @@ struct Point {
     proj y: i32,
 }
 
-fn imm f(proj p: Point): Point {
+fn imm f(imm p: Point): Point {
     // let proj x = &p.x; // ERROR: p is under the regime imm, it propagates to the whole struct.
     // let proj y = &p.y; // ERROR: p is under the regime imm, it propagates to the whole struct.
-    &Point { x, y }
+    Point { x, y }
 }
 
 fn tmp1() {

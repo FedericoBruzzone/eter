@@ -8,7 +8,7 @@ fn proj get(proj it: Iter<i32, 3>, fix i: i32): i32 { it.data[i] }
 fn next(proj it: Iter<i32, 3>): i32 {
     let i = it.cursor;
     if i >= 3 { abort(); }
-    &it.cursor = i + 1;
+    *it.cursor = i + 1;
     ret it.data[i];
 }
 
@@ -24,12 +24,12 @@ fn main() {
 
 
     // -------------------------------------------------------------------------------
-    &tmp2 += 10;
+    *tmp2 += 10;
     // `el` dead (it's not used anymore), so you can use `it` again.
 
     while proj el2 = next(it) {
         // `it` is projected, you can't mutate `data` through it.
-        &el2 += 10;
+        *el2 += 10;
     }
 
     // `it` returns alive, so you can continue using it.

@@ -547,8 +547,8 @@ fn mut f(proj p: Point): Point {
     // p.x gives proj access (proj binding + mut field -> proj)
     let mut x = p.x; // proj -> mut: allowed once, forces reinitialization of p.x
     let mut y = p.y; // proj -> mut: allowed once, forces reinitialization of p.y
-    &p.x = 10;       // reinit p.x
-    &p.y = 20;       // reinit p.y
+    *p.x = 10;       // reinit p.x
+    *p.y = 20;       // reinit p.y
     Point { x, y }   // OK: returning a new Point (not the projection itself)
     // p // ERROR: Escaping the return of a proj to a mut is not allowed. Need to copy.
 }
@@ -579,8 +579,8 @@ fn mut f(proj p: Point, proj u: Point): Point {
     // u is not used
     let mut x = p.x; // proj -> mut: forces reinitialization
     let mut y = p.y; // proj -> mut: forces reinitialization
-    &p.x = 10;
-    &p.y = 20;
+    *p.x = 10;
+    *p.y = 20;
     Point { x, y }
     // p // ERROR: Escaping the return of a proj to a mut is not allowed. Need to copy.
 }
@@ -614,8 +614,8 @@ fn mut f(proj p: Point, mut u: Point): Point {
     // u is not used
     let mut x = p.x; // proj -> mut: forces reinitialization
     let mut y = p.y; // proj -> mut: forces reinitialization
-    &p.x = 10;
-    &p.y = 20;
+    *p.x = 10;
+    *p.y = 20;
     Point { x, y }
 }
 
@@ -648,8 +648,8 @@ fn mut f(proj p: Point, imm u: Point): Point {
     // u is not used
     let mut x = p.x; // proj -> mut: forces reinitialization
     let mut y = p.y; // proj -> mut: forces reinitialization
-    &p.x = 10;
-    &p.y = 20;
+    *p.x = 10;
+    *p.y = 20;
     Point { x, y }
 }
 

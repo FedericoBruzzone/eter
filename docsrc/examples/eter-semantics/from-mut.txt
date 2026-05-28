@@ -45,7 +45,7 @@ fn main() {
     let mut x: i32 = 1;
     let proj y: i32 = &x;
     // let proj z: i32 = &x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
-    &y = 2;
+    *y = 2;
     // NOTE: x can be eventually used again if y is not used anymore.
 }
 
@@ -54,7 +54,7 @@ fn main() {
     let mut x: i32 = 1;
     f(&x);
     // let proj y: i32 = &x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
-    &y = 2;
+    *x = 2;
     // NOTE: x can be eventually used again.
 }
 
@@ -104,7 +104,7 @@ fn main() {
     let mut x: [i32; 3] = [1, 2, 3];
     let proj y: [i32; 3] = &x;
     // let proj z: [i32; 3] = &x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
-    &y = [3, 2, 1];
+    *y = [3, 2, 1];
     // NOTE: x can be eventually used again if y is not used anymore.
 }
 
@@ -113,7 +113,7 @@ fn main() {
     let mut x: [i32; 3] = [1, 2, 3];
     f(&x);
     // let proj y: [i32; 3] = &x; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
-    &y = [3, 2, 1];
+    *y = [3, 2, 1];
     // NOTE: x can be eventually used again if y is not used anymore.
 }
 
@@ -168,7 +168,7 @@ fn main() {
     let mut p = Point { x: 1, y: 2 };
     let proj q = &p;
     // let proj r = &p; // ERROR: Changing the regime from mut to proj is allowed only once. Need to copy.
-    &q = Point { x: 3, y: 4 };
+    *q = Point { x: 3, y: 4 };
     // NOTE: p can be eventually used again if q is not used anymore.
 }
 
@@ -594,8 +594,8 @@ struct Point {
 fn mut f(mut p: Point): Point {
     let mut x = p.x; // NOTE: Changing the regime from proj to mut forces a reinitialization of the projection.
     let mut y = p.y; // NOTE: Changing the regime from proj to mut forces a reinitialization of the projection.
-    &p.x = 10;
-    &p.y = 20;
+    *p.x = 10;
+    *p.y = 20;
     // Point { x, y } creates a new Point that OWNS x and y.
     // The `proj` field marker describes the access mode (in-place mutable reference),
     // not external storage — the struct owns its data.
@@ -636,8 +636,8 @@ fn mut f(mut p: Point, mut u: Point): Point {
     // u is not used
     let mut x = p.x; // NOTE: proj -> mut forces reinitialization
     let mut y = p.y; // NOTE: proj -> mut forces reinitialization
-    &p.x = 10;
-    &p.y = 20;
+    *p.x = 10;
+    *p.y = 20;
     Point { x, y }
 }
 
@@ -670,8 +670,8 @@ fn mut f(mut p: Point, imm u: Point): Point {
     // u is not used
     let mut x = p.x; // NOTE: proj -> mut forces reinitialization
     let mut y = p.y; // NOTE: proj -> mut forces reinitialization
-    &p.x = 10;
-    &p.y = 20;
+    *p.x = 10;
+    *p.y = 20;
     Point { x, y }
 }
 
@@ -707,8 +707,8 @@ fn mut f(mut p: Point, proj u: Point): Point {
     // u is not used
     let mut x = p.x; // NOTE: proj -> mut forces reinitialization
     let mut y = p.y; // NOTE: proj -> mut forces reinitialization
-    &p.x = 10;
-    &p.y = 20;
+    *p.x = 10;
+    *p.y = 20;
     Point { x, y }
 }
 
