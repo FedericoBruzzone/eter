@@ -577,10 +577,10 @@ TEST(LexerTest, LexKeywords) {
   Lexer L;
   auto Buffer = createTestBuffer(
       "as break const continue else enum false imm fn "
-      "for if let match mod mut proj pub ret struct true use while");
+      "for if let match mod mut proj pub ret struct true union use while");
   auto Items = L.lex(Buffer);
 
-  ASSERT_EQ(Items.size(), 23);
+  ASSERT_EQ(Items.size(), 24);
   EXPECT_EQ(getToken(Items[0]).TokenKind, Token::Kind::kw_as);
   EXPECT_EQ(getToken(Items[1]).TokenKind, Token::Kind::kw_break);
   EXPECT_EQ(getToken(Items[2]).TokenKind, Token::Kind::kw_const);
@@ -601,9 +601,10 @@ TEST(LexerTest, LexKeywords) {
   EXPECT_EQ(getToken(Items[17]).TokenKind, Token::Kind::kw_ret);
   EXPECT_EQ(getToken(Items[18]).TokenKind, Token::Kind::kw_struct);
   EXPECT_EQ(getToken(Items[19]).TokenKind, Token::Kind::kw_true);
-  EXPECT_EQ(getToken(Items[20]).TokenKind, Token::Kind::kw_use);
-  EXPECT_EQ(getToken(Items[21]).TokenKind, Token::Kind::kw_while);
-  EXPECT_EQ(getToken(Items[22]).TokenKind, Token::Kind::eof);
+  EXPECT_EQ(getToken(Items[20]).TokenKind, Token::Kind::kw_union);
+  EXPECT_EQ(getToken(Items[21]).TokenKind, Token::Kind::kw_use);
+  EXPECT_EQ(getToken(Items[22]).TokenKind, Token::Kind::kw_while);
+  EXPECT_EQ(getToken(Items[23]).TokenKind, Token::Kind::eof);
 }
 
 //============================================================================//

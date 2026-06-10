@@ -19,6 +19,7 @@
 #include "eter/Parser/TokenStream.h"
 
 #include <llvm/ADT/ArrayRef.h>
+#include <llvm/ADT/STLFunctionalExtras.h>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/StringRef.h>
 
@@ -69,7 +70,7 @@ struct ParseResult {
 /// AST, even on malformed input. Malformed subtrees are represented by
 /// `NodeKind::Error` nodes. On cascading errors the parser synchronises to the
 /// nearest statement boundary (e.g., `;`, `}`) or top-level declaration keyword
-/// (e.g., `fn`, `struct`, `enum`, `mod`, `use`).
+/// (e.g., `fn`, `struct`, `enum`, `union`, `mod`, `use`).
 ///
 /// ## Expression parsing
 /// Expressions are parsed with a Pratt (top-down operator precedence) parser
@@ -133,6 +134,8 @@ private:
                             llvm::ArrayRef<NodeIndex> Attrs);
   NodeIndex parseEnumDecl(llvm::ArrayRef<NodeIndex> Docs,
                           llvm::ArrayRef<NodeIndex> Attrs);
+  NodeIndex parseUnionDecl(llvm::ArrayRef<NodeIndex> Docs,
+                           llvm::ArrayRef<NodeIndex> Attrs);
   NodeIndex parseModDecl(llvm::ArrayRef<NodeIndex> Docs,
                          llvm::ArrayRef<NodeIndex> Attrs);
   NodeIndex parseUseDecl(llvm::ArrayRef<NodeIndex> Docs,
@@ -141,6 +144,19 @@ private:
   NodeIndex parseParam();
   NodeIndex parseStructField();
   NodeIndex parseEnumVariant();
+
+  /// Parse a comma-separated list of elements produced by `ParseElement` into
+  /// `Children`, allowing a trailing comma. Stops before the `Close` delimiter
+  /// (or at EOF) without consuming it; the caller `expect`s the delimiter with
+  /// its own diagnostic.
+  ///
+  /// If an element records a diagnostic, skips ahead to the next `,` or
+  /// `Close` so that one malformed element produces a single diagnostic
+  /// instead of a cascade. Used for struct/union bodies, enum variant lists,
+  /// and tuple variant type lists.
+  void parseCommaSeparated(llvm::SmallVectorImpl<NodeIndex> &Children,
+                           lexer::Token::Kind Close,
+                           llvm::function_ref<NodeIndex()> ParseElement);
   // Const Declarations (cf. ParseConst.cpp)
   NodeIndex parseConstDecl(llvm::ArrayRef<NodeIndex> Docs,
                            llvm::ArrayRef<NodeIndex> Attrs);
@@ -185,6 +201,13 @@ private:
   NodeIndex parseLitExpr(const lexer::Token &Tok);
   NodeIndex parsePostfixOrCallExpr(NodeIndex Lhs);
   NodeIndex parseArgList();
+
+  /// Struct literal: Name { FieldInit* }. `Name` and `Start` come from the
+  /// already-consumed identifier; the current token must be `{`.
+  NodeIndex parseStructLitExpr(InternedStr Name, Span Start);
+  /// A field initialiser: name : Expr, or the shorthand `name` (equivalent
+  /// to `name: name`, with a synthesised IdentExpr child).
+  NodeIndex parseFieldInit();
 
   /// Infix operator precedence table (Pratt parser).
   ///
@@ -296,7 +319,8 @@ private:
   /// Advance past tokens until a synchronisation point:
   ///   - A `;` (end of the current statement), or
   ///   - A `}` (end of the current block), or
-  ///   - A top-level declaration keyword: fn, struct, enum, mod, use, const, or
+  ///   - A top-level declaration keyword: fn, struct, enum, union, mod, use,
+  ///     const, or
   ///   - A statement-introducing keyword: let, if, while, for, match, ret.
   ///
   /// The broader keyword set is a strict superset of the top-level set, so the
@@ -312,6 +336,13 @@ private:
   [[nodiscard]] llvm::StringRef textOf(Span S) const {
     return Stream.textOf(S);
   }
+
+  /// Whether `Name { … }` in expression position parses as a struct literal.
+  /// Cleared while parsing if/while conditions and match scrutinees, where a
+  /// following `{` opens the construct's block instead (same restriction as
+  /// Rust); restored inside any bracketed sub-expression: `(…)`, `[…]`,
+  /// argument lists, and struct-literal field initialisers.
+  bool StructLitAllowed = true;
 
   /// The token stream.
   TokenStream Stream;

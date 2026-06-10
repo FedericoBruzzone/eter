@@ -89,6 +89,10 @@ ETER_DECL(StructDecl)
 /// Children: [DocComment*, Attribute*, EnumVariant*].  Payload: InternedStr (name).
 ETER_DECL(EnumDecl)
 
+/// Union declaration: union Name { StructField* }
+/// Children: [DocComment*, Attribute*, StructField*].  Payload: InternedStr (name).
+ETER_DECL(UnionDecl)
+
 /// Inline module declaration: mod name { TopLevelDecl* }
 /// Children: [DocComment*, Attribute*, TopLevelDecl*].  Payload: InternedStr (name).
 ETER_DECL(ModDecl)
@@ -112,16 +116,17 @@ ETER_DECL(ConstDecl)
 /// Children: [Type].  Payload: makePayload(name, regime).
 ETER_DECL(StructField)
 
-/// Unit enum variant:  VariantName
-/// Children: [].  Payload: InternedStr (name).
+/// Unit enum variant:  VariantName [= ConstExpr]
+/// Children: [ConstExpr?] (explicit discriminant, absent when unspecified).
+/// Payload: makePayload(name, Regime::None).
 ETER_DECL(EnumVariantUnit)
 
 /// Tuple enum variant: VariantName(Type*)
-/// Children: [Type*].  Payload: InternedStr (name).
+/// Children: [Type*].  Payload: makePayload(name, Regime::None).
 ETER_DECL(EnumVariantTuple)
 
 /// Struct enum variant: VariantName { StructField* }
-/// Children: [StructField*].  Payload: InternedStr (name).
+/// Children: [StructField*].  Payload: makePayload(name, Regime::None).
 ETER_DECL(EnumVariantStruct)
 
 /// A formal parameter: [regime] name: Type
@@ -136,8 +141,8 @@ ETER_DECL(ParamList)
 // Statements
 //===----------------------------------------------------------------------===//
 
-/// Let binding: let [regime] name [: Type] = Expr ;
-/// Children: [Type?, Expr].  Payload: makePayload(name, regime).
+/// Let binding: let [regime] name [: Type] [= Expr] ;
+/// Children: [Type?, Expr?].  Payload: makePayload(name, regime).
 ETER_STMT(LetStmt)
 
 /// An expression used as a statement (must end with ';' in Eter).
@@ -218,6 +223,10 @@ ETER_EXPR(IndexExpr)
 /// Children: [Expr (base)].  Payload: InternedStr (field name).
 ETER_EXPR(FieldExpr)
 
+/// Tuple index access: Expr . IntegerLiteral  (e.g. point.0)
+/// Children: [Expr (base)].  Payload: InternedStr (index literal text).
+ETER_EXPR(TupleIndexExpr)
+
 /// Struct literal: Name { FieldInit* }
 /// Children: [FieldInit*].  Payload: InternedStr (struct name).
 ETER_EXPR(StructLitExpr)
@@ -225,6 +234,13 @@ ETER_EXPR(StructLitExpr)
 /// Array literal: [ Expr* ]
 /// Children: [Expr*].  Payload: 0.
 ETER_EXPR(ArrayLitExpr)
+
+/// Tuple expression: ( Expr, Expr, ... )
+/// Zero children encode the unit value `()`. A one-element tuple requires a
+/// trailing comma (`(x,)`); a plain `(x)` is a parenthesised expression and
+/// produces no node.
+/// Children: [Expr*].  Payload: 0.
+ETER_EXPR(TupleExpr)
 
 /// A field initialiser inside a struct literal: name : Expr (or shorthand).
 /// Children: [Expr].  Payload: InternedStr (field name).
@@ -253,6 +269,11 @@ ETER_TYPE(NamedType)
 /// Array type: [ Type ; Expr ]
 /// Children: [Type, Expr (size)].  Payload: 0.
 ETER_TYPE(ArrayType)
+
+/// Tuple type: ( Type, Type, ... )
+/// Zero children encode the unit type `()`.
+/// Children: [Type*].  Payload: 0.
+ETER_TYPE(TupleType)
 
 /// Type with address-space attribute: Type @qualifier
 /// e.g. [f32] @global,  Tensor @shared

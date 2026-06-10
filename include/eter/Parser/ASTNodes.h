@@ -108,6 +108,17 @@ struct EnumDecl : ASTNode<NodeKind::EnumDecl> {
   [[nodiscard]] llvm::ArrayRef<NodeIndex> getVariants(const NodePool &P) const;
 };
 
+/// Typed view over a `UnionDecl` node.
+///
+/// Child layout: [Attribute*, StructField*]
+/// Payload: InternedStr (union name)
+struct UnionDecl : ASTNode<NodeKind::UnionDecl> {
+  [[nodiscard]] InternedStr getName(const NodePool &P) const;
+  [[nodiscard]] llvm::ArrayRef<NodeIndex>
+  getAttributes(const NodePool &P) const;
+  [[nodiscard]] llvm::ArrayRef<NodeIndex> getFields(const NodePool &P) const;
+};
+
 /// Typed view over a `Param` node.
 ///
 /// Child layout: [Type]
@@ -132,16 +143,17 @@ struct ParamList : ASTNode<NodeKind::ParamList> {
 
 /// Typed view over a `LetStmt` node.
 ///
-/// Child layout: [Type?, Expr]
-///   ChildCount == 1: no type annotation; child[0] = Expr (initialiser).
-///   ChildCount == 2: child[0] = Type annotation, child[1] = Expr.
+/// Child layout: [Type?, Expr?]
+///   Both the type annotation and the initialiser are optional. The children
+///   that are present appear in that order and are distinguished by node
+///   kind (type nodes vs expression nodes).
 /// Payload: makePayload(bindingName, regime)
 struct LetStmt : ASTNode<NodeKind::LetStmt> {
   [[nodiscard]] InternedStr getName(const NodePool &P) const;
   [[nodiscard]] Regime getRegime(const NodePool &P) const;
   /// Explicit type annotation, or NullNode if absent.
   [[nodiscard]] NodeIndex getTypeAnnotation(const NodePool &P) const;
-  /// The initialiser expression (always present; may be a NodeKind::Error).
+  /// The initialiser expression, or NullNode if absent.
   [[nodiscard]] NodeIndex getInitExpr(const NodePool &P) const;
 };
 
@@ -238,6 +250,42 @@ struct FieldExpr : ASTNode<NodeKind::FieldExpr> {
   [[nodiscard]] InternedStr getFieldName(const NodePool &P) const;
 };
 
+/// Typed view over a `TupleExpr` node: ( Expr, Expr, ... )
+///
+/// Child layout: [Expr*] (empty = the unit value `()`)
+/// Payload: 0
+struct TupleExpr : ASTNode<NodeKind::TupleExpr> {
+  [[nodiscard]] llvm::ArrayRef<NodeIndex> getElements(const NodePool &P) const;
+};
+
+/// Typed view over a `TupleIndexExpr` node: Expr . IntegerLiteral
+///
+/// Child layout: [Expr (base)]
+/// Payload: InternedStr (index literal text, e.g. "0")
+struct TupleIndexExpr : ASTNode<NodeKind::TupleIndexExpr> {
+  [[nodiscard]] NodeIndex getBase(const NodePool &P) const;
+  [[nodiscard]] InternedStr getIndexText(const NodePool &P) const;
+};
+
+/// Typed view over a `StructLitExpr` node.
+///
+/// Child layout: [FieldInit*]
+/// Payload: InternedStr (struct name)
+struct StructLitExpr : ASTNode<NodeKind::StructLitExpr> {
+  [[nodiscard]] InternedStr getName(const NodePool &P) const;
+  [[nodiscard]] llvm::ArrayRef<NodeIndex>
+  getFieldInits(const NodePool &P) const;
+};
+
+/// Typed view over a `FieldInit` node (`name: Expr`, or shorthand `name`).
+///
+/// Child layout: [Expr] (for the shorthand, a synthesised IdentExpr)
+/// Payload: InternedStr (field name)
+struct FieldInit : ASTNode<NodeKind::FieldInit> {
+  [[nodiscard]] InternedStr getFieldName(const NodePool &P) const;
+  [[nodiscard]] NodeIndex getExpr(const NodePool &P) const;
+};
+
 /// Typed view over an `IdentExpr` node.
 ///
 /// Child layout: []
@@ -275,6 +323,15 @@ struct NamedType : ASTNode<NodeKind::NamedType> {
 struct ArrayType : ASTNode<NodeKind::ArrayType> {
   [[nodiscard]] NodeIndex getElementType(const NodePool &P) const;
   [[nodiscard]] NodeIndex getSizeExpr(const NodePool &P) const;
+};
+
+/// Typed view over a `TupleType` node: ( Type, Type, ... )
+///
+/// Child layout: [Type*] (empty = the unit type `()`)
+/// Payload: 0
+struct TupleType : ASTNode<NodeKind::TupleType> {
+  [[nodiscard]] llvm::ArrayRef<NodeIndex>
+  getElementTypes(const NodePool &P) const;
 };
 
 /// Typed view over an `AttrType` node: Type @qualifier
