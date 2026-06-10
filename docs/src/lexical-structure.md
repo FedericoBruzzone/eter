@@ -53,14 +53,18 @@ Keywords are reserved words that have special meaning in the language. They cann
 
 | Strict Keywords | | | |
 | :--- | :--- | :--- | :--- |
-| `as` | `enum` | `match` | `true` |
-| `break` | `false` | `mod` | `type` |
-| `const` | `fn` | `mut` | `use` |
-| `continue` | `for` | `pub` | `where` |
-| `if` | `ref` | `while` | `else` |
-|`return` | `let` | `struct` | 
+| `as` | `break` | `const` | `continue` |
+| `else` | `enum` | `false` | `fn` |
+| `for` | `if` | `imm` | `let` |
+| `match` | `mod` | `mut` | `proj` |
+| `pub` | `ret` | `struct` | `true` |
+| `union` | `use` | `while` | |
 
-*Note: Some keywords might be reserved for future use or macro rules.*
+The following keywords are reserved for future use; using them produces a compile-time error:
+
+| Reserved Keywords | | | |
+| :--- | :--- | :--- | :--- |
+| `ref` | `return` | `type` | `where` |
 
 ### Identifiers 
 
