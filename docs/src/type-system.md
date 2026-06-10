@@ -134,7 +134,7 @@ struct AName {
   x: i32,
   y: f64,
 }
-let aStruct = AName ( x: 15, y: 10.4 );
+let aStruct = AName { x: 15, y: 10.4 };
 ```
 Structs fields can be accessed with `.` followed by the field name.
 

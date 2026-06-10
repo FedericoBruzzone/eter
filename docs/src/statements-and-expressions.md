@@ -36,11 +36,12 @@ Assignment statements perform an action and do not evaluate to a value, meaning 
 
 ### Item declaration statements (`let`)
 
-Item declaration statements introduce new items into the current scope. The most common item declaration within a block is the `let` statement, which binds a new local variable by **always specifying its name and type**. Variables are immutable by default unless marked with the `mut` keyword (more in the [Memory Model Chapter](./memory-model.md)).
+Item declaration statements introduce new items into the current scope. The most common item declaration within a block is the `let` statement, which binds a new local variable by specifying its name and, optionally, its type: when the type annotation is omitted, it is inferred from the initialiser. Variables are immutable by default unless marked with the `mut` keyword (more in the [Memory Model Chapter](./memory-model.md)).
 
 | Declaration | Description | Example |
 | :--- | :--- | :--- |
-| **Variable Binding** | Binds a value to a new local variable, with a required type annotation. | `let name: str = "Alice";` |
+| **Variable Binding** | Binds a value to a new local variable, with an explicit type annotation. | `let name: str = "Alice";` |
+| **Inferred Binding** | Binds a value to a new local variable; the type is inferred from the initialiser. | `let name = "Alice";` |
 | **Mutable Binding** | Binds a value to a mutable local variable. | `let mut count: i32 = 0;` |
 
 #### Nested Items and Scoping
