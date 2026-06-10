@@ -15,6 +15,7 @@
 
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/ErrorHandling.h>
+#include <llvm/Support/SaveAndRestore.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include <cstdint>
@@ -76,12 +77,45 @@ NodeIndex Parser::parsePrefixExpr() {
     return parseLitExpr(Tok);
   case Kind::identifier: {
     advance();
-    return Pool.allocLeaf(NodeKind::IdentExpr, Tok.TokenSpan,
-                          Interner.intern(textOf(Tok.TokenSpan)));
+    const InternedStr Name = Interner.intern(textOf(Tok.TokenSpan));
+    // Struct literal: Name { FieldInit* }. Suppressed in if/while/match
+    // headers, where the `{` opens the construct's block instead.
+    if (StructLitAllowed && check(Kind::l_brace))
+      return parseStructLitExpr(Name, Tok.TokenSpan);
+    return Pool.allocLeaf(NodeKind::IdentExpr, Tok.TokenSpan, Name);
   }
   case Kind::l_paren: {
     advance();
-    NodeIndex Inner = parseExpr(0);
+    // Parentheses disambiguate, so struct literals are legal again even
+    // inside an if/while/match header.
+    const llvm::SaveAndRestore<bool> AllowStructLit(StructLitAllowed, true);
+
+    // Unit value: ()
+    if (check(Kind::r_paren)) {
+      const Span End = advance().TokenSpan;
+      return Pool.alloc(NodeKind::TupleExpr, Span{Tok.TokenSpan.Start, End.End},
+                        {});
+    }
+
+    const NodeIndex Inner = parseExpr(0);
+
+    // Tuple expression: ( Expr, Expr, ... ). The trailing comma is what
+    // distinguishes a one-element tuple `(x,)` from a parenthesised
+    // expression `(x)`.
+    if (check(Kind::comma)) {
+      llvm::SmallVector<NodeIndex, 4> Elems;
+      Elems.push_back(Inner);
+      while (consume(Kind::comma)) {
+        if (check(Kind::r_paren)) // trailing comma
+          break;
+        Elems.push_back(parseExpr(0));
+      }
+      const Span End =
+          expect(Kind::r_paren, DiagID::ExpectedTupleExprClose).TokenSpan;
+      return Pool.alloc(NodeKind::TupleExpr, Span{Tok.TokenSpan.Start, End.End},
+                        Elems);
+    }
+
     expect(Kind::r_paren, DiagID::ExpectedParenExprClose);
     return Inner;
   }
@@ -130,6 +164,16 @@ NodeIndex Parser::parsePostfixOrCallExpr(NodeIndex Lhs) {
     }
     case Kind::dot: {
       advance();
+      // Tuple index access: Expr . IntegerLiteral (e.g. point.0).
+      // FIXME: `t.0.1` lexes `0.1` as a float literal and is not supported
+      //        yet; write `(t.0).1` instead.
+      if (check(Kind::integer_literal)) {
+        const lexer::Token IdxTok = advance();
+        Lhs = Pool.alloc(NodeKind::TupleIndexExpr,
+                         Span{Pool.spanOf(Lhs).Start, IdxTok.TokenSpan.End},
+                         {Lhs}, Interner.intern(textOf(IdxTok.TokenSpan)));
+        continue;
+      }
       const InternedStr Field =
           expectAndIntern(Kind::identifier, DiagID::ExpectedFieldName);
       Lhs = Pool.alloc(
@@ -140,7 +184,12 @@ NodeIndex Parser::parsePostfixOrCallExpr(NodeIndex Lhs) {
     }
     case Kind::l_square: {
       advance();
-      const NodeIndex Index = parseExpr();
+      NodeIndex Index;
+      {
+        // Brackets disambiguate (cf. the parenthesised-expression case).
+        const llvm::SaveAndRestore<bool> AllowStructLit(StructLitAllowed, true);
+        Index = parseExpr();
+      }
       const Span Close =
           expect(Kind::r_square, DiagID::ExpectedRSquare).TokenSpan;
       Lhs = Pool.alloc(NodeKind::IndexExpr,
@@ -168,6 +217,9 @@ NodeIndex Parser::parseArgList() {
   const Span Start =
       expect(Kind::l_paren, DiagID::ExpectedArgListOpen).TokenSpan;
 
+  // Parentheses disambiguate (cf. the parenthesised-expression case).
+  const llvm::SaveAndRestore<bool> AllowStructLit(StructLitAllowed, true);
+
   llvm::SmallVector<NodeIndex, 8> Args;
   if (!check(Kind::r_paren)) {
     Args.push_back(parseExpr());
@@ -179,6 +231,53 @@ NodeIndex Parser::parseArgList() {
       expect(Kind::r_paren, DiagID::ExpectedArgListClose).TokenSpan;
 
   return Pool.alloc(NodeKind::ArgList, Span{Start.Start, End.End}, Args);
+}
+
+NodeIndex Parser::parseStructLitExpr(InternedStr Name, Span Start) {
+  ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] parseStructLitExpr\n");
+  using Kind = lexer::Token::Kind;
+
+  advance(); // consume '{' (guaranteed by the caller's check)
+
+  // Inside the braces there is no block ambiguity, so nested struct literals
+  // are legal again even when the outer context suppressed them.
+  const llvm::SaveAndRestore<bool> AllowStructLit(StructLitAllowed, true);
+
+  llvm::SmallVector<NodeIndex, 8> Fields;
+  parseCommaSeparated(Fields, Kind::r_brace,
+                      [this] { return parseFieldInit(); });
+
+  const Span End =
+      expect(Kind::r_brace, DiagID::ExpectedStructLitClose).TokenSpan;
+  return Pool.alloc(NodeKind::StructLitExpr, Span{Start.Start, End.End}, Fields,
+                    Name);
+}
+
+NodeIndex Parser::parseFieldInit() {
+  ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] parseFieldInit\n");
+  using Kind = lexer::Token::Kind;
+
+  // Bail out at the first error; parseCommaSeparated resynchronises to the
+  // next field initialiser.
+  if (!check(Kind::identifier)) {
+    const Span S = peekToken().TokenSpan;
+    addError(S, DiagID::ExpectedFieldInitName);
+    return makeErrorNode(S);
+  }
+  const lexer::Token NameTok = advance();
+  const InternedStr Name = Interner.intern(textOf(NameTok.TokenSpan));
+
+  if (consume(Kind::colon)) {
+    const NodeIndex Init = parseExpr();
+    return Pool.alloc(NodeKind::FieldInit,
+                      Span{NameTok.TokenSpan.Start, Pool.spanOf(Init).End},
+                      {Init}, Name);
+  }
+
+  // Shorthand `name` ≡ `name: name`: synthesise the IdentExpr child.
+  const NodeIndex Ident =
+      Pool.allocLeaf(NodeKind::IdentExpr, NameTok.TokenSpan, Name);
+  return Pool.alloc(NodeKind::FieldInit, NameTok.TokenSpan, {Ident}, Name);
 }
 
 std::pair<int, int> Parser::infixBindingPower(lexer::Token::Kind K) {

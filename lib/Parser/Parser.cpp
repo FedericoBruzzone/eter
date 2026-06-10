@@ -131,6 +131,33 @@ InternedStr Parser::expectAndIntern(lexer::Token::Kind K, DiagID D) {
 }
 
 //===----------------------------------------------------------------------===//
+// Comma-separated lists
+//===----------------------------------------------------------------------===//
+
+void Parser::parseCommaSeparated(llvm::SmallVectorImpl<NodeIndex> &Children,
+                                 lexer::Token::Kind Close,
+                                 llvm::function_ref<NodeIndex()> ParseElement) {
+  using Kind = lexer::Token::Kind;
+
+  if (check(Close) || atEof())
+    return;
+  while (true) {
+    const size_t ErrorsBefore = Errors.size();
+    Children.push_back(ParseElement());
+    // After a malformed element, skip ahead to the next ',' or the closing
+    // delimiter so one bad element yields a single diagnostic instead of a
+    // cascade of follow-up errors on the same tokens.
+    if (Errors.size() != ErrorsBefore)
+      while (!check(Kind::comma) && !check(Close) && !atEof())
+        advance();
+    if (!consume(Kind::comma))
+      return;
+    if (check(Close)) // trailing comma
+      return;
+  }
+}
+
+//===----------------------------------------------------------------------===//
 // Error recovery
 //===----------------------------------------------------------------------===//
 
@@ -169,6 +196,7 @@ void Parser::synchronize() {
     case Kind::kw_fn:
     case Kind::kw_struct:
     case Kind::kw_enum:
+    case Kind::kw_union:
     case Kind::kw_mod:
     case Kind::kw_use:
     case Kind::kw_const:

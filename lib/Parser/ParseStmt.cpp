@@ -15,6 +15,7 @@
 
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Support/ErrorHandling.h>
+#include <llvm/Support/SaveAndRestore.h>
 #include <llvm/Support/raw_ostream.h>
 
 #define DEBUG_TYPE "parser-stmt"
@@ -82,26 +83,26 @@ NodeIndex Parser::parseLetStmt() {
 
   const Regime LetRegime = parseRegime();
 
-  if (LetRegime == Regime::None)
-    addError(peekToken().TokenSpan, DiagID::ExpectedRegimeAfterLet);
-
   const InternedStr Name =
       expectAndIntern(Kind::identifier, DiagID::ExpectedLetName);
 
-  expect(Kind::colon, DiagID::ExpectedColonAfterName);
-
   llvm::SmallVector<NodeIndex, 2> Children;
-  Children.push_back(parseType());
+  if (consume(Kind::colon))
+    Children.push_back(parseType());
 
   if (consume(Kind::eq))
     Children.push_back(parseExpr());
 
   if (!Children.empty() && Pool.kindOf(Children.back()) == NodeKind::Error) {
-    while (!check(Kind::semi) && !atEof())
+    // The initialiser already produced a diagnostic; resynchronise to the
+    // end of the statement without emitting the follow-up ';' diagnostic.
+    // Stop at '}' as well so a missing ';' does not swallow the block close.
+    while (!check(Kind::semi) && !check(Kind::r_brace) && !atEof())
       advance();
+    consume(Kind::semi);
+  } else {
+    expect(Kind::semi, DiagID::ExpectedLetSemi);
   }
-
-  expect(Kind::semi, DiagID::ExpectedLetSemi);
 
   return Pool.alloc(NodeKind::LetStmt,
                     Span{Start.Start, Stream.previous().TokenSpan.End},
@@ -130,7 +131,12 @@ NodeIndex Parser::parseIfExpr() {
   const Span Start = expect(Kind::kw_if, DiagID::ExpectedIfKeyword).TokenSpan;
 
   llvm::SmallVector<NodeIndex, 3> Children;
-  Children.push_back(parseExpr());
+  {
+    // A `{` after the condition opens the then-block, not a struct literal:
+    // `if x { … }` must not parse the condition as `x { … }`.
+    const llvm::SaveAndRestore<bool> NoStructLit(StructLitAllowed, false);
+    Children.push_back(parseExpr());
+  }
 
   Children.push_back(parseBlockExpr());
 
@@ -156,7 +162,11 @@ NodeIndex Parser::parseWhileStmt() {
       expect(Kind::kw_while, DiagID::ExpectedWhileKeyword).TokenSpan;
 
   llvm::SmallVector<NodeIndex, 2> Children;
-  Children.push_back(parseExpr());
+  {
+    // Same restriction as `if`: the `{` opens the loop body.
+    const llvm::SaveAndRestore<bool> NoStructLit(StructLitAllowed, false);
+    Children.push_back(parseExpr());
+  }
 
   Children.push_back(parseBlockExpr());
 
@@ -178,7 +188,12 @@ NodeIndex Parser::parseMatchExpr() {
   const Span Start =
       expect(Kind::kw_match, DiagID::ExpectedMatchKeyword).TokenSpan;
 
-  const NodeIndex Scrutinee = parseExpr();
+  NodeIndex Scrutinee;
+  {
+    // Same restriction as `if`: the `{` opens the arm list.
+    const llvm::SaveAndRestore<bool> NoStructLit(StructLitAllowed, false);
+    Scrutinee = parseExpr();
+  }
 
   expect(Kind::l_brace, DiagID::ExpectedBlockOpen);
 

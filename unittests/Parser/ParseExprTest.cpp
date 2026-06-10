@@ -74,6 +74,19 @@ TEST(ParserTestExpr, LetProjWithType) {
   checkInternedString(PR.Pool.childrenOf(Let)[1], "10");
 }
 
+TEST(ParserTestExpr, LetWithoutRegime) {
+  parseSource("fn main(){ let x: i32 = 10; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(checkChildrenKinds(Let, NodeKind::NamedType, NodeKind::LitExpr));
+  checkInternedString(Let, "x");
+  checkRegime(Let, Regime::None);
+  checkInternedString(PR.Pool.childrenOf(Let)[0], "i32");
+  checkInternedString(PR.Pool.childrenOf(Let)[1], "10");
+}
+
 TEST(ParserTestExpr, LetWithBoolLit) {
   parseSource("fn main(){ let imm x: bool = true; }");
 
@@ -560,8 +573,445 @@ TEST(ParserTestExpr, LetWithCallExpr) {
 }
 
 //===----------------------------------------------------------------------===//
+// Let without type annotation
+//===----------------------------------------------------------------------===//
+
+TEST(ParserTestExpr, LetWithoutTypeAnnotation) {
+  parseSource("fn main(){ let imm x = 10; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(checkChildrenKinds(Let, NodeKind::LitExpr));
+  checkInternedString(Let, "x");
+  checkRegime(Let, Regime::Imm);
+  checkInternedString(PR.Pool.childrenOf(Let)[0], "10");
+}
+
+//===----------------------------------------------------------------------===//
+// Struct literals
+//===----------------------------------------------------------------------===//
+
+TEST(ParserTestExpr, StructLitSingleField) {
+  parseSource("fn main(){ let imm p = X { x: 42 }; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(checkChildrenKinds(Let, NodeKind::StructLitExpr));
+
+  const NodeIndex Lit = PR.Pool.childrenOf(Let)[0];
+  checkInternedString(Lit, "X");
+  checkSpan(Lit, "X { x: 42 }");
+  EXPECT_TRUE(checkChildrenKinds(Lit, NodeKind::FieldInit));
+
+  const NodeIndex Init = PR.Pool.childrenOf(Lit)[0];
+  checkInternedString(Init, "x");
+  EXPECT_TRUE(checkChildrenKinds(Init, NodeKind::LitExpr));
+  checkInternedString(PR.Pool.childrenOf(Init)[0], "42");
+}
+
+TEST(ParserTestExpr, StructLitEmpty) {
+  parseSource("fn main(){ let imm p = X {}; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Lit = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_EQ(PR.Pool.kindOf(Lit), NodeKind::StructLitExpr);
+  checkInternedString(Lit, "X");
+  EXPECT_EQ(PR.Pool.childrenOf(Lit).size(), 0u);
+}
+
+TEST(ParserTestExpr, StructLitTrailingComma) {
+  parseSource("fn main(){ let imm p = X { x: 1, y: 2, }; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Lit = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_TRUE(
+      checkChildrenKinds(Lit, NodeKind::FieldInit, NodeKind::FieldInit));
+  checkInternedString(PR.Pool.childrenOf(Lit)[0], "x");
+  checkInternedString(PR.Pool.childrenOf(Lit)[1], "y");
+}
+
+TEST(ParserTestExpr, StructLitShorthand) {
+  // `X { x }` is shorthand for `X { x: x }`: the parser synthesises the
+  // IdentExpr child.
+  parseSource("fn main(){ let imm p = X { x }; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Lit = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_TRUE(checkChildrenKinds(Lit, NodeKind::FieldInit));
+
+  const NodeIndex Init = PR.Pool.childrenOf(Lit)[0];
+  checkInternedString(Init, "x");
+  EXPECT_TRUE(checkChildrenKinds(Init, NodeKind::IdentExpr));
+  checkInternedString(PR.Pool.childrenOf(Init)[0], "x");
+}
+
+TEST(ParserTestExpr, StructLitNested) {
+  parseSource("fn main(){ let imm p = X { y: Y { q: 1 } }; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Outer = PR.Pool.childrenOf(firstLet())[0];
+  checkInternedString(Outer, "X");
+
+  const NodeIndex InitY = PR.Pool.childrenOf(Outer)[0];
+  EXPECT_TRUE(checkChildrenKinds(InitY, NodeKind::StructLitExpr));
+
+  const NodeIndex Inner = PR.Pool.childrenOf(InitY)[0];
+  checkInternedString(Inner, "Y");
+  EXPECT_TRUE(checkChildrenKinds(Inner, NodeKind::FieldInit));
+}
+
+TEST(ParserTestExpr, StructLitFieldAccess) {
+  parseSource("fn main(){ let imm v = X { x: 1 }.x; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Field = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_EQ(PR.Pool.kindOf(Field), NodeKind::FieldExpr);
+  EXPECT_TRUE(checkChildrenKinds(Field, NodeKind::StructLitExpr));
+}
+
+TEST(ParserTestExpr, IfCondIsNotStructLit) {
+  // In an `if` header the `{` opens the then-block, not a struct literal.
+  parseSource("fn main(){ if x { } }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex If = PR.Pool.childrenOf(fnBody())[0];
+  EXPECT_EQ(PR.Pool.kindOf(If), NodeKind::IfExpr);
+  EXPECT_TRUE(checkChildrenKinds(If, NodeKind::IdentExpr, NodeKind::BlockExpr));
+}
+
+TEST(ParserTestExpr, WhileCondIsNotStructLit) {
+  parseSource("fn main(){ while x { } }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex While = PR.Pool.childrenOf(fnBody())[0];
+  EXPECT_EQ(PR.Pool.kindOf(While), NodeKind::WhileStmt);
+  EXPECT_TRUE(
+      checkChildrenKinds(While, NodeKind::IdentExpr, NodeKind::BlockExpr));
+}
+
+TEST(ParserTestExpr, ParenLiftsStructLitRestriction) {
+  // Parentheses disambiguate, so a struct literal is legal again inside an
+  // `if` header.
+  parseSource("fn main(){ if (X { x: 1 }).x { } }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex If = PR.Pool.childrenOf(fnBody())[0];
+  EXPECT_TRUE(checkChildrenKinds(If, NodeKind::FieldExpr, NodeKind::BlockExpr));
+}
+
+TEST(ParserTestExpr, StructLitAsCallArg) {
+  parseSource("fn main(){ foo(X { x: 1 }); }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Call = PR.Pool.childrenOf(fnBody())[0];
+  EXPECT_TRUE(checkChildrenKinds(Call, NodeKind::IdentExpr, NodeKind::ArgList));
+  const NodeIndex Args = PR.Pool.childrenOf(Call)[1];
+  EXPECT_TRUE(checkChildrenKinds(Args, NodeKind::StructLitExpr));
+}
+
+//===----------------------------------------------------------------------===//
+// Tuples
+//===----------------------------------------------------------------------===//
+
+TEST(ParserTestExpr, TupleExprAndType) {
+  // The example from the language specification.
+  parseSource(
+      R"(fn main(){ let imm record: (i32, f64, str) = (42, 3.14, "hello"); })");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(
+      checkChildrenKinds(Let, NodeKind::TupleType, NodeKind::TupleExpr));
+
+  const NodeIndex Ty = PR.Pool.childrenOf(Let)[0];
+  checkSpan(Ty, "(i32, f64, str)");
+  EXPECT_TRUE(checkChildrenKinds(Ty, NodeKind::NamedType, NodeKind::NamedType,
+                                 NodeKind::NamedType));
+  checkInternedString(PR.Pool.childrenOf(Ty)[0], "i32");
+  checkInternedString(PR.Pool.childrenOf(Ty)[1], "f64");
+  checkInternedString(PR.Pool.childrenOf(Ty)[2], "str");
+
+  const NodeIndex Tup = PR.Pool.childrenOf(Let)[1];
+  checkSpan(Tup, R"((42, 3.14, "hello"))");
+  EXPECT_TRUE(checkChildrenKinds(Tup, NodeKind::LitExpr, NodeKind::LitExpr,
+                                 NodeKind::LitExpr));
+  checkInternedString(PR.Pool.childrenOf(Tup)[0], "42");
+  checkInternedString(PR.Pool.childrenOf(Tup)[1], "3.14");
+  checkInternedString(PR.Pool.childrenOf(Tup)[2], "\"hello\"");
+}
+
+TEST(ParserTestExpr, ParenExprIsNotTuple) {
+  parseSource("fn main(){ let imm x = (42); }");
+
+  EXPECT_TRUE(PR.ok());
+
+  // `(x)` is a parenthesised expression: parens are elided, no tuple node.
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(checkChildrenKinds(Let, NodeKind::LitExpr));
+}
+
+TEST(ParserTestExpr, OneElementTupleNeedsTrailingComma) {
+  parseSource("fn main(){ let imm t = (42,); }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Tup = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_EQ(PR.Pool.kindOf(Tup), NodeKind::TupleExpr);
+  EXPECT_TRUE(checkChildrenKinds(Tup, NodeKind::LitExpr));
+}
+
+TEST(ParserTestExpr, UnitTupleExprAndType) {
+  parseSource("fn main(){ let imm u: () = (); }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(
+      checkChildrenKinds(Let, NodeKind::TupleType, NodeKind::TupleExpr));
+  EXPECT_EQ(PR.Pool.childrenOf(PR.Pool.childrenOf(Let)[0]).size(), 0u);
+  EXPECT_EQ(PR.Pool.childrenOf(PR.Pool.childrenOf(Let)[1]).size(), 0u);
+}
+
+TEST(ParserTestExpr, NestedTuple) {
+  parseSource("fn main(){ let imm t: (i32, (f64, str)) = ((1, 2), 3); }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(
+      checkChildrenKinds(Let, NodeKind::TupleType, NodeKind::TupleExpr));
+
+  const NodeIndex Ty = PR.Pool.childrenOf(Let)[0];
+  EXPECT_TRUE(checkChildrenKinds(Ty, NodeKind::NamedType, NodeKind::TupleType));
+
+  const NodeIndex Tup = PR.Pool.childrenOf(Let)[1];
+  EXPECT_TRUE(checkChildrenKinds(Tup, NodeKind::TupleExpr, NodeKind::LitExpr));
+}
+
+TEST(ParserTestExpr, TupleExprTrailingComma) {
+  parseSource("fn main(){ let imm t = (1, 2, ); }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Tup = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_TRUE(checkChildrenKinds(Tup, NodeKind::LitExpr, NodeKind::LitExpr));
+}
+
+TEST(ParserTestExpr, TupleIndexAccess) {
+  parseSource("fn main(){ let imm x = point.0; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Idx = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_EQ(PR.Pool.kindOf(Idx), NodeKind::TupleIndexExpr);
+  checkInternedString(Idx, "0");
+  checkSpan(Idx, "point.0");
+  EXPECT_TRUE(checkChildrenKinds(Idx, NodeKind::IdentExpr));
+  checkInternedString(PR.Pool.childrenOf(Idx)[0], "point");
+}
+
+TEST(ParserTestExpr, FieldAccessOnTupleIndex) {
+  parseSource("fn main(){ let imm x = t.0.x; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  // (t.0).x — the tuple index binds first, then the field access.
+  const NodeIndex Field = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_EQ(PR.Pool.kindOf(Field), NodeKind::FieldExpr);
+  checkInternedString(Field, "x");
+  EXPECT_TRUE(checkChildrenKinds(Field, NodeKind::TupleIndexExpr));
+}
+
+TEST(ParserTestExpr, TupleTypeInParam) {
+  parseSource("fn dist(p: (i32, i32)): i32 {}");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Fn = PR.Pool.childrenOf(PR.Root)[0];
+  const NodeIndex Params = PR.Pool.childrenOf(Fn)[0];
+  const NodeIndex P = PR.Pool.childrenOf(Params)[0];
+  EXPECT_TRUE(checkChildrenKinds(P, NodeKind::TupleType));
+}
+
+TEST(ParserTestExpr, TupleExprMissingClose) {
+  parseSource("fn main(){ let imm t = (1, 2; }");
+
+  EXPECT_FALSE(PR.ok());
+  EXPECT_TRUE(hasDiag(DiagID::ExpectedTupleExprClose));
+}
+
+TEST(ParserTestExpr, TupleTypeMissingClose) {
+  parseSource("fn main(){ let imm t: (i32, f64 = (); }");
+
+  EXPECT_FALSE(PR.ok());
+  EXPECT_TRUE(hasDiag(DiagID::ExpectedTupleTypeClose));
+}
+
+//===----------------------------------------------------------------------===//
+// Field access
+//===----------------------------------------------------------------------===//
+
+TEST(ParserTestExpr, LetWithFieldAccess) {
+  parseSource("fn main(){ let imm x: i32 = point.x; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(
+      checkChildrenKinds(Let, NodeKind::NamedType, NodeKind::FieldExpr));
+
+  const NodeIndex Field = PR.Pool.childrenOf(Let)[1];
+  checkInternedString(Field, "x");
+  checkSpan(Field, "point.x");
+  EXPECT_TRUE(checkChildrenKinds(Field, NodeKind::IdentExpr));
+  checkInternedString(PR.Pool.childrenOf(Field)[0], "point");
+}
+
+TEST(ParserTestExpr, LetWithNestedFieldAccess) {
+  parseSource("fn main(){ let imm x: i32 = s.inner.value; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(
+      checkChildrenKinds(Let, NodeKind::NamedType, NodeKind::FieldExpr));
+
+  // Field access is left-associative: (s.inner).value
+  const NodeIndex Outer = PR.Pool.childrenOf(Let)[1];
+  checkInternedString(Outer, "value");
+  checkSpan(Outer, "s.inner.value");
+  EXPECT_TRUE(checkChildrenKinds(Outer, NodeKind::FieldExpr));
+
+  const NodeIndex Inner = PR.Pool.childrenOf(Outer)[0];
+  checkInternedString(Inner, "inner");
+  checkSpan(Inner, "s.inner");
+  EXPECT_TRUE(checkChildrenKinds(Inner, NodeKind::IdentExpr));
+  checkInternedString(PR.Pool.childrenOf(Inner)[0], "s");
+}
+
+TEST(ParserTestExpr, FieldAccessOnCallResult) {
+  parseSource("fn main(){ let imm x: i32 = make().x; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(
+      checkChildrenKinds(Let, NodeKind::NamedType, NodeKind::FieldExpr));
+
+  const NodeIndex Field = PR.Pool.childrenOf(Let)[1];
+  checkInternedString(Field, "x");
+  EXPECT_TRUE(checkChildrenKinds(Field, NodeKind::CallExpr));
+}
+
+TEST(ParserTestExpr, CallOnFieldAccess) {
+  parseSource("fn main(){ let imm x: i32 = s.callback(1); }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(checkChildrenKinds(Let, NodeKind::NamedType, NodeKind::CallExpr));
+
+  // The callee is the field access s.callback.
+  const NodeIndex Call = PR.Pool.childrenOf(Let)[1];
+  EXPECT_TRUE(checkChildrenKinds(Call, NodeKind::FieldExpr, NodeKind::ArgList));
+
+  const NodeIndex Callee = PR.Pool.childrenOf(Call)[0];
+  checkInternedString(Callee, "callback");
+  EXPECT_TRUE(checkChildrenKinds(Callee, NodeKind::IdentExpr));
+  checkInternedString(PR.Pool.childrenOf(Callee)[0], "s");
+}
+
+TEST(ParserTestExpr, FieldAccessOnIndexExpr) {
+  parseSource("fn main(){ let imm x: i32 = items[0].x; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(
+      checkChildrenKinds(Let, NodeKind::NamedType, NodeKind::FieldExpr));
+
+  const NodeIndex Field = PR.Pool.childrenOf(Let)[1];
+  checkInternedString(Field, "x");
+  EXPECT_TRUE(checkChildrenKinds(Field, NodeKind::IndexExpr));
+}
+
+TEST(ParserTestExpr, FieldAccessBindsTighterThanBinary) {
+  parseSource("fn main(){ let imm x: i32 = p.x + p.y; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(
+      checkChildrenKinds(Let, NodeKind::NamedType, NodeKind::BinaryExpr));
+
+  const NodeIndex Add = PR.Pool.childrenOf(Let)[1];
+  EXPECT_TRUE(
+      checkChildrenKinds(Add, NodeKind::FieldExpr, NodeKind::FieldExpr));
+  checkInternedString(PR.Pool.childrenOf(Add)[0], "x");
+  checkInternedString(PR.Pool.childrenOf(Add)[1], "y");
+}
+
+TEST(ParserTestExpr, AssignToField) {
+  parseSource("fn main(){ p.x = 3; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Body = fnBody();
+  EXPECT_TRUE(checkChildrenKinds(Body, NodeKind::BinaryExpr));
+
+  const NodeIndex Assign = PR.Pool.childrenOf(Body)[0];
+  EXPECT_TRUE(
+      checkChildrenKinds(Assign, NodeKind::FieldExpr, NodeKind::LitExpr));
+  checkInternedString(PR.Pool.childrenOf(Assign)[0], "x");
+  checkInternedString(PR.Pool.childrenOf(Assign)[1], "3");
+}
+
+//===----------------------------------------------------------------------===//
 // Error recovery
 //===----------------------------------------------------------------------===//
+
+TEST(ParserTestExpr, StructLitBadFieldSingleError) {
+  parseSource("fn main(){ let imm p = X { 42 }; }");
+
+  EXPECT_FALSE(PR.ok());
+  EXPECT_TRUE(hasDiag(DiagID::ExpectedFieldInitName));
+  EXPECT_EQ(PR.Errors.size(), 1u);
+}
+
+TEST(ParserTestExpr, StructLitMissingCloseBrace) {
+  parseSource("fn main(){ let imm p = X { x: 1 ; }");
+
+  EXPECT_FALSE(PR.ok());
+  EXPECT_TRUE(hasDiag(DiagID::ExpectedStructLitClose));
+}
+
+TEST(ParserTestExpr, LetBadInitSingleError) {
+  // The bad initialiser must produce exactly one diagnostic: the missing ';'
+  // and unclosed-block follow-ups are a cascade of the same mistake.
+  parseSource("fn main() {\n    let imm x: i32 = + 1\n}");
+
+  EXPECT_FALSE(PR.ok());
+  EXPECT_TRUE(hasDiag(DiagID::ExpectedExpr));
+  EXPECT_EQ(PR.Errors.size(), 1u);
+}
+
+TEST(ParserTestExpr, FieldAccessMissingName) {
+  parseSource("fn main(){ let imm x: i32 = p.; }");
+  EXPECT_FALSE(PR.ok());
+  EXPECT_TRUE(hasDiag(DiagID::ExpectedFieldName));
+}
 
 TEST(ParserTestExpr, ArithMissingRhs) {
   parseSource("fn main() { let imm x: i32 = 1 + ; }");

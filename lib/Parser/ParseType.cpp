@@ -24,6 +24,16 @@ NodeIndex Parser::parseType() {
   ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] parseType\n");
   using Kind = lexer::Token::Kind;
 
+  // Tuple type: ( Type, Type, ... ); `()` is the unit type.
+  if (check(Kind::l_paren)) {
+    const Span Start = advance().TokenSpan;
+    llvm::SmallVector<NodeIndex, 4> Types;
+    parseCommaSeparated(Types, Kind::r_paren, [this] { return parseType(); });
+    const Span End =
+        expect(Kind::r_paren, DiagID::ExpectedTupleTypeClose).TokenSpan;
+    return Pool.alloc(NodeKind::TupleType, Span{Start.Start, End.End}, Types);
+  }
+
   const Span NameSpan = peekToken().TokenSpan;
   const InternedStr Name =
       expectAndIntern(Kind::identifier, DiagID::ExpectedTypeName);
