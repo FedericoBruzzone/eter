@@ -258,6 +258,17 @@ struct TupleExpr : ASTNode<NodeKind::TupleExpr> {
   [[nodiscard]] llvm::ArrayRef<NodeIndex> getElements(const NodePool &P) const;
 };
 
+/// Typed view over a `TensorIndexExpr` node: Expr [ Expr, Expr, ... ]
+///
+/// Used for multi-dimensional tensor access with 2+ comma-separated indices.
+/// For single-index access (including 1D tensors) use IndexExpr.
+/// Child layout: [Expr (base), Expr+ (indices, one per dimension)]
+/// Payload: 0
+struct TensorIndexExpr : ASTNode<NodeKind::TensorIndexExpr> {
+  [[nodiscard]] NodeIndex getBase(const NodePool &P) const;
+  [[nodiscard]] llvm::ArrayRef<NodeIndex> getIndices(const NodePool &P) const;
+};
+
 /// Typed view over a `TupleIndexExpr` node: Expr . IntegerLiteral
 ///
 /// Child layout: [Expr (base)]
@@ -341,13 +352,25 @@ struct NamedType : ASTNode<NodeKind::NamedType> {
   [[nodiscard]] InternedStr getName(const NodePool &P) const;
 };
 
-/// Typed view over an `ArrayType` node: [ Type ; ConstExpr (, ConstExpr)* ]
+/// Typed view over an `ArrayType` node: [ Type ; ConstExpr ]
 ///
-/// Child layout: [Type (element type), ConstExpr+ (one size per dimension)]
+/// 1D only. For multi-dimensional tensors use TensorType.
+/// Child layout: [Type (element type), ConstExpr (size)]
 /// Payload: 0
 struct ArrayType : ASTNode<NodeKind::ArrayType> {
   [[nodiscard]] NodeIndex getElementType(const NodePool &P) const;
-  /// The size expressions, one per dimension (tensors have several).
+  [[nodiscard]] NodeIndex getSizeExpr(const NodePool &P) const;
+};
+
+/// Typed view over a `TensorType` node: tensor [ Type ; ConstExpr (,
+/// ConstExpr)* ]
+///
+/// Stack-allocated mathematical value type with data/shape/stride/offset.
+/// Supports O(1) slicing, transpose, and broadcasting.
+/// Child layout: [Type (element type), ConstExpr+ (one size per dimension)]
+/// Payload: 0
+struct TensorType : ASTNode<NodeKind::TensorType> {
+  [[nodiscard]] NodeIndex getElementType(const NodePool &P) const;
   [[nodiscard]] llvm::ArrayRef<NodeIndex> getSizeExprs(const NodePool &P) const;
 };
 

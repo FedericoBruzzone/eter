@@ -146,6 +146,7 @@ ETER_KEYWORD(proj, "proj")
 ETER_KEYWORD(pub, "pub")
 ETER_KEYWORD(ret, "ret")
 ETER_KEYWORD(struct, "struct")
+ETER_KEYWORD(tensor, "tensor")
 ETER_KEYWORD(true, "true")
 ETER_KEYWORD(union, "union")
 ETER_KEYWORD(use, "use")
@@ -154,9 +155,13 @@ ETER_KEYWORD(while, "while")
 //===----------------------------------------------------------------------===//
 // Reserved Keywords (produce lexer errors when encountered)
 //===----------------------------------------------------------------------===//
-ETER_RESERVED_KEYWORD(type, "type")
-ETER_RESERVED_KEYWORD(return, "return")
+ETER_RESERVED_KEYWORD(dim, "dim")
 ETER_RESERVED_KEYWORD(ref, "ref")
+ETER_RESERVED_KEYWORD(return, "return")
+ETER_RESERVED_KEYWORD(shape, "shape")
+ETER_RESERVED_KEYWORD(sym, "sym")
+ETER_RESERVED_KEYWORD(tsor, "tsor")
+ETER_RESERVED_KEYWORD(type, "type")
 ETER_RESERVED_KEYWORD(where, "where")
 
 //===----------------------------------------------------------------------===//

@@ -224,17 +224,34 @@ NodeIndex Parser::parsePostfixOrCallExpr(NodeIndex Lhs) {
       continue;
     }
     case Kind::l_square: {
-      advance();
-      NodeIndex Index;
+      advance(); // consume '['
+      const Span LhsSpan = Pool.spanOf(Lhs);
+
+      // Collect all comma-separated index expressions.
+      // [base, idx0]      → IndexExpr       (array / 1D-tensor single index)
+      // [base, idx0, ...] → TensorIndexExpr (2+ indices for ND tensors)
+      llvm::SmallVector<NodeIndex, 4> Children;
+      Children.push_back(Lhs);
       {
-        // Brackets disambiguate (cf. the parenthesised-expression case).
         const llvm::SaveAndRestore<bool> AllowStructLit(StructLitAllowed, true);
-        Index = parseExpr();
+        Children.push_back(parseExpr());
+        while (consume(Kind::comma)) {
+          if (check(Kind::r_square))
+            break; // trailing comma
+          Children.push_back(parseExpr());
+        }
       }
+      const bool IsTensor = Children.size() > 2;
       const Span Close =
-          expect(Kind::r_square, DiagID::ExpectedRSquare).TokenSpan;
-      Lhs = Pool.alloc(NodeKind::IndexExpr,
-                       Span{Pool.spanOf(Lhs).Start, Close.End}, {Lhs, Index});
+          expect(Kind::r_square, IsTensor ? DiagID::ExpectedTensorIndexClose
+                                          : DiagID::ExpectedRSquare)
+              .TokenSpan;
+      if (IsTensor)
+        Lhs = Pool.alloc(NodeKind::TensorIndexExpr,
+                         Span{LhsSpan.Start, Close.End}, Children);
+      else
+        Lhs = Pool.alloc(NodeKind::IndexExpr, Span{LhsSpan.Start, Close.End},
+                         {Children[0], Children[1]});
       continue;
     }
     case Kind::question: {

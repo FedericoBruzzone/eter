@@ -261,6 +261,7 @@ private:
   NodeIndex parseType();
   NodeIndex parseNamedType();
   NodeIndex parseArrayType();
+  NodeIndex parseTensorType();
 
   //===----------------------------------------------------------------------===//
   // Patterns (cf. ParsePat.cpp)
