@@ -37,6 +37,9 @@ NodeIndex Parser::parseType() {
   if (check(Kind::l_square))
     return parseArrayType();
 
+  if (check(Kind::kw_tensor))
+    return parseTensorType();
+
   return parseNamedType();
 }
 
@@ -58,22 +61,41 @@ NodeIndex Parser::parseArrayType() {
   ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] parseArrayType\n");
   using Kind = lexer::Token::Kind;
 
-  const Span Start = advance().TokenSpan; // consume '[' (cf. parseType)
+  const Span Start = advance().TokenSpan; // consume '['
 
-  llvm::SmallVector<NodeIndex, 4> Children;
+  llvm::SmallVector<NodeIndex, 2> Children;
   Children.push_back(parseType());
 
   expect(Kind::semi, DiagID::ExpectedArrayTypeSemi);
-
-  // One size per dimension: [i32; 3] is an array, [f32; 2, 2] a tensor.
-  parseCommaSeparated(Children, Kind::r_square,
-                      [this] { return parseConstExpr(); });
-  if (Children.size() == 1)
-    addError(peekToken().TokenSpan, DiagID::ExpectedArraySize);
+  Children.push_back(parseConstExpr());
 
   const Span End =
       expect(Kind::r_square, DiagID::ExpectedArrayTypeClose).TokenSpan;
   return Pool.alloc(NodeKind::ArrayType, Span{Start.Start, End.End}, Children);
+}
+
+NodeIndex Parser::parseTensorType() {
+  ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] parseTensorType\n");
+  using Kind = lexer::Token::Kind;
+
+  const Span Start = advance().TokenSpan; // consume 'tensor'
+
+  expect(Kind::l_square, DiagID::ExpectedTensorOpen);
+
+  llvm::SmallVector<NodeIndex, 4> Children;
+  Children.push_back(parseType());
+
+  expect(Kind::semi, DiagID::ExpectedTensorTypeSemi);
+
+  // One size per dimension: tensor[i32; 10] is 1D, tensor[f32; 2, 4] is 2D.
+  parseCommaSeparated(Children, Kind::r_square,
+                      [this] { return parseConstExpr(); });
+  if (Children.size() == 1)
+    addError(peekToken().TokenSpan, DiagID::ExpectedTensorSize);
+
+  const Span End =
+      expect(Kind::r_square, DiagID::ExpectedTensorTypeClose).TokenSpan;
+  return Pool.alloc(NodeKind::TensorType, Span{Start.Start, End.End}, Children);
 }
 
 } // namespace eter::parser

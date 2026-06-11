@@ -981,45 +981,78 @@ TEST(ParserTestExpr, ArrayLitEmptyAndTrailingComma) {
 }
 
 TEST(ParserTestExpr, TensorTypeAndNestedLit) {
-  // The tensor example from the language specification.
+  // tensor[f32; 2, 2] is a 2D tensor type (distinct from array [f32; 2]).
   parseSource(
-      "fn main(){ let imm m: [f32; 2, 2] = [[1.0, 0.0], [0.0, 1.0]]; }");
+      "fn main(){ let imm m: tensor[f32; 2, 2] = [[1.0, 0.0], [0.0, 1.0]]; }");
 
   EXPECT_TRUE(PR.ok());
 
   const NodeIndex Let = firstLet();
   EXPECT_TRUE(
-      checkChildrenKinds(Let, NodeKind::ArrayType, NodeKind::ArrayLitExpr));
+      checkChildrenKinds(Let, NodeKind::TensorType, NodeKind::ArrayLitExpr));
 
-  // Tensor type: element type + one size per dimension.
+  // TensorType: element type + one size per dimension.
   const NodeIndex Ty = PR.Pool.childrenOf(Let)[0];
+  checkSpan(Ty, "tensor[f32; 2, 2]");
   EXPECT_TRUE(checkChildrenKinds(Ty, NodeKind::NamedType, NodeKind::LitExpr,
                                  NodeKind::LitExpr));
+  checkInternedString(PR.Pool.childrenOf(Ty)[0], "f32");
+  checkInternedString(PR.Pool.childrenOf(Ty)[1], "2");
+  checkInternedString(PR.Pool.childrenOf(Ty)[2], "2");
 
   const NodeIndex Lit = PR.Pool.childrenOf(Let)[1];
   EXPECT_TRUE(
       checkChildrenKinds(Lit, NodeKind::ArrayLitExpr, NodeKind::ArrayLitExpr));
 }
 
-TEST(ParserTestExpr, TensorChainedIndexAccess) {
-  // Tensor elements are accessed by chained indexing (cf. the language
-  // specification): t[0][1] is (t[0])[1].
-  parseSource("fn main(){ let imm e: i32 = t[0][1]; }");
+TEST(ParserTestExpr, TensorTypeSingleDim) {
+  parseSource("fn main(){ let imm v: tensor[i32; 10] = x; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Ty = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_EQ(PR.Pool.kindOf(Ty), NodeKind::TensorType);
+  checkSpan(Ty, "tensor[i32; 10]");
+  EXPECT_TRUE(checkChildrenKinds(Ty, NodeKind::NamedType, NodeKind::LitExpr));
+  checkInternedString(PR.Pool.childrenOf(Ty)[0], "i32");
+  checkInternedString(PR.Pool.childrenOf(Ty)[1], "10");
+}
+
+TEST(ParserTestExpr, TensorIndexAccess) {
+  // Multi-index access t[i, j] produces a TensorIndexExpr.
+  parseSource("fn main(){ let imm e: i32 = t[0, 1]; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Idx = PR.Pool.childrenOf(firstLet())[1];
+  EXPECT_EQ(PR.Pool.kindOf(Idx), NodeKind::TensorIndexExpr);
+  checkSpan(Idx, "t[0, 1]");
+  // children: [base, idx0, idx1]
+  EXPECT_TRUE(checkChildrenKinds(Idx, NodeKind::IdentExpr, NodeKind::LitExpr,
+                                 NodeKind::LitExpr));
+  checkInternedString(PR.Pool.childrenOf(Idx)[0], "t");
+  checkInternedString(PR.Pool.childrenOf(Idx)[1], "0");
+  checkInternedString(PR.Pool.childrenOf(Idx)[2], "1");
+}
+
+TEST(ParserTestExpr, ArrayChainedIndexAccess) {
+  // Chained single-index access a[i][j] — each bracket produces an IndexExpr.
+  parseSource("fn main(){ let imm e: i32 = a[0][1]; }");
 
   EXPECT_TRUE(PR.ok());
 
   const NodeIndex Outer = PR.Pool.childrenOf(firstLet())[1];
   EXPECT_EQ(PR.Pool.kindOf(Outer), NodeKind::IndexExpr);
-  checkSpan(Outer, "t[0][1]");
+  checkSpan(Outer, "a[0][1]");
   EXPECT_TRUE(
       checkChildrenKinds(Outer, NodeKind::IndexExpr, NodeKind::LitExpr));
   checkInternedString(PR.Pool.childrenOf(Outer)[1], "1");
 
   const NodeIndex Inner = PR.Pool.childrenOf(Outer)[0];
-  checkSpan(Inner, "t[0]");
+  checkSpan(Inner, "a[0]");
   EXPECT_TRUE(
       checkChildrenKinds(Inner, NodeKind::IdentExpr, NodeKind::LitExpr));
-  checkInternedString(PR.Pool.childrenOf(Inner)[0], "t");
+  checkInternedString(PR.Pool.childrenOf(Inner)[0], "a");
   checkInternedString(PR.Pool.childrenOf(Inner)[1], "0");
 }
 
@@ -1037,7 +1070,14 @@ TEST(ParserTestExpr, ArrayTypeMissingSize) {
   parseSource("fn main(){ let imm a: [i32; ] = x; }");
 
   EXPECT_FALSE(PR.ok());
-  EXPECT_TRUE(hasDiag(DiagID::ExpectedArraySize));
+  EXPECT_TRUE(hasDiag(DiagID::ExpectedConstLiteral));
+}
+
+TEST(ParserTestExpr, TensorTypeMissingSize) {
+  parseSource("fn main(){ let imm a: tensor[i32; ] = x; }");
+
+  EXPECT_FALSE(PR.ok());
+  EXPECT_TRUE(hasDiag(DiagID::ExpectedTensorSize));
 }
 
 TEST(ParserTestExpr, ArrayLitMissingClose) {

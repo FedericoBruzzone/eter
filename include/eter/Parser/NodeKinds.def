@@ -215,9 +215,13 @@ ETER_EXPR(ProjAssignExpr)
 /// Children: [Expr (callee), ArgList].  Payload: 0.
 ETER_EXPR(CallExpr)
 
-/// Index expression: Expr [ Expr ]
+/// Array index expression: Expr [ Expr ]  (single index, 1D arrays)
 /// Children: [Expr (base), Expr (index)].  Payload: 0.
 ETER_EXPR(IndexExpr)
+
+/// Tensor index expression: Expr [ Expr, Expr, ... ]  (2+ comma-separated indices)
+/// Children: [Expr (base), Expr+ (indices, one per dimension)].  Payload: 0.
+ETER_EXPR(TensorIndexExpr)
 
 /// Field access: Expr . name
 /// Children: [Expr (base)].  Payload: InternedStr (field name).
@@ -276,11 +280,15 @@ ETER_EXPR(PropagateExpr)
 /// Children: [].  Payload: InternedStr (type name, possibly `::`-qualified).
 ETER_TYPE(NamedType)
 
-/// Array or tensor type: [ Type ; ConstExpr (, ConstExpr)* ]
-/// One size expression per dimension: [i32; 3] is an array, [f32; 2, 2] a
-/// tensor.
-/// Children: [Type, ConstExpr+ (sizes)].  Payload: 0.
+/// Array type: [ Type ; ConstExpr ]  (1D, static stack-allocated storage)
+/// Children: [Type (element type), ConstExpr (size)].  Payload: 0.
 ETER_TYPE(ArrayType)
+
+/// Tensor type: tensor [ Type ; ConstExpr (, ConstExpr)* ]
+/// Stack-allocated mathematical value type with data/shape/stride/offset.
+/// Supports O(1) slicing, transpose, and broadcasting.
+/// Children: [Type (element type), ConstExpr+ (one size per dimension)].  Payload: 0.
+ETER_TYPE(TensorType)
 
 /// Tuple type: ( Type, Type, ... )
 /// Zero children encode the unit type `()`.
