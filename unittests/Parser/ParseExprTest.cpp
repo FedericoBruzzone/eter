@@ -678,6 +678,55 @@ TEST(ParserTestExpr, StructLitFieldAccess) {
   EXPECT_TRUE(checkChildrenKinds(Field, NodeKind::StructLitExpr));
 }
 
+TEST(ParserTestExpr, IfAsExpr) {
+  // if/else used as the RHS of a let binding.
+  parseSource("fn main(x: bool){ let imm v: i32 = if x { 1; } else { 2; }; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Rhs = PR.Pool.childrenOf(firstLet())[1];
+  EXPECT_EQ(PR.Pool.kindOf(Rhs), NodeKind::IfExpr);
+  EXPECT_TRUE(checkChildrenKinds(Rhs, NodeKind::IdentExpr, NodeKind::BlockExpr,
+                                 NodeKind::BlockExpr));
+}
+
+TEST(ParserTestExpr, MatchAsExpr) {
+  // match used as the RHS of a let binding.
+  parseSource("fn main(b: Balls){ let imm v: i32 = match b { "
+              "Balls::Tennis => 0, _ => 1 }; } "
+              "enum Balls { Tennis, Golf }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Rhs = PR.Pool.childrenOf(firstLet())[1];
+  EXPECT_EQ(PR.Pool.kindOf(Rhs), NodeKind::MatchExpr);
+  // children: [scrutinee, arm0, arm1]
+  EXPECT_EQ(PR.Pool.childrenOf(Rhs).size(), 3u);
+  checkInternedString(PR.Pool.childrenOf(Rhs)[0], "b");
+}
+
+TEST(ParserTestExpr, WhileAsExpr) {
+  // while used as the RHS of a let binding (evaluates to unit).
+  parseSource("fn main(x: bool){ let imm v: () = while x { }; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Rhs = PR.Pool.childrenOf(firstLet())[1];
+  EXPECT_EQ(PR.Pool.kindOf(Rhs), NodeKind::WhileStmt);
+}
+
+TEST(ParserTestExpr, BlockAsExpr) {
+  // Block expression used as the RHS of a let binding.
+  parseSource("fn main(){ let imm v: i32 = { 42; }; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Rhs = PR.Pool.childrenOf(firstLet())[1];
+  EXPECT_EQ(PR.Pool.kindOf(Rhs), NodeKind::BlockExpr);
+  EXPECT_EQ(PR.Pool.childrenOf(Rhs).size(), 1u);
+  checkInternedString(PR.Pool.childrenOf(Rhs)[0], "42");
+}
+
 TEST(ParserTestExpr, IfCondIsNotStructLit) {
   // In an `if` header the `{` opens the then-block, not a struct literal.
   parseSource("fn main(x: bool){ if x { } }");
