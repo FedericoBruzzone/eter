@@ -244,6 +244,13 @@ ETER_EXPR(ArrayLitExpr)
 /// Children: [Expr (value), ConstExpr (count)].  Payload: 0.
 ETER_EXPR(ArrayRepeatExpr)
 
+/// Tensor literal: tensor [ Expr (, Expr)* ; ConstExpr (, ConstExpr)* ]
+/// Repeat form:   tensor [ Expr ; ConstExpr (, ConstExpr)* ]   (single value broadcast)
+/// Flat form:     tensor [ Expr (, Expr)* ; ConstExpr (, ConstExpr)* ]  (N values + shape)
+/// Children: [Expr+ (values), ConstExpr+ (dims)].
+/// Payload: number of value children (uint16, read with NodePool::payloadOp).
+ETER_EXPR(TensorLitExpr)
+
 /// Tuple expression: ( Expr, Expr, ... )
 /// Zero children encode the unit value `()`. A one-element tuple requires a
 /// trailing comma (`(x,)`); a plain `(x)` is a parenthesised expression and

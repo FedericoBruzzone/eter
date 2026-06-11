@@ -330,6 +330,18 @@ struct ArrayRepeatExpr : ASTNode<NodeKind::ArrayRepeatExpr> {
   [[nodiscard]] NodeIndex getCount(const NodePool &P) const;
 };
 
+/// Typed view over a `TensorLitExpr` node.
+///
+/// Repeat form:  tensor [ Expr ; ConstExpr (, ConstExpr)* ]
+/// Flat form:    tensor [ Expr (, Expr)* ; ConstExpr (, ConstExpr)* ]
+/// Child layout: [Expr+ (values), ConstExpr+ (dims)]
+/// Payload: number of value children (uint16, via NodePool::payloadOp)
+struct TensorLitExpr : ASTNode<NodeKind::TensorLitExpr> {
+  [[nodiscard]] uint16_t getValueCount(const NodePool &P) const;
+  [[nodiscard]] llvm::ArrayRef<NodeIndex> getValues(const NodePool &P) const;
+  [[nodiscard]] llvm::ArrayRef<NodeIndex> getDims(const NodePool &P) const;
+};
+
 /// Typed view over a `LitExpr` node.
 ///
 /// Child layout: []

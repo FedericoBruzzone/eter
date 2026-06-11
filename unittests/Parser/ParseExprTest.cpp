@@ -1055,6 +1055,43 @@ TEST(ParserTestExpr, ArrayIndexAccess) {
   checkInternedString(PR.Pool.childrenOf(Idx)[1], "2");
 }
 
+TEST(ParserTestExpr, TensorLitRepeat) {
+  // Repeat form: single value broadcast over shape.
+  parseSource("fn main(){ let imm t: tensor[f32; 2, 3] = tensor[0.0; 2, 3]; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Lit = PR.Pool.childrenOf(firstLet())[1];
+  EXPECT_EQ(PR.Pool.kindOf(Lit), NodeKind::TensorLitExpr);
+  // Payload encodes the value count (1 for repeat form).
+  EXPECT_EQ(NodePool::payloadOp(PR.Pool[Lit].Payload), 1u);
+  // Children: [value(0.0), dim(2), dim(3)]
+  EXPECT_TRUE(checkChildrenKinds(Lit, NodeKind::LitExpr, NodeKind::LitExpr,
+                                 NodeKind::LitExpr));
+  checkInternedString(PR.Pool.childrenOf(Lit)[0], "0.0");
+  checkInternedString(PR.Pool.childrenOf(Lit)[1], "2");
+  checkInternedString(PR.Pool.childrenOf(Lit)[2], "3");
+}
+
+TEST(ParserTestExpr, TensorLitFlat) {
+  // Flat form: explicit element values + shape.
+  parseSource("fn main(){ let imm t: tensor[f32; 2, 2] = "
+              "tensor[1.0, 2.0, 3.0, 4.0; 2, 2]; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Lit = PR.Pool.childrenOf(firstLet())[1];
+  EXPECT_EQ(PR.Pool.kindOf(Lit), NodeKind::TensorLitExpr);
+  // Payload encodes the value count (4 for this flat literal).
+  EXPECT_EQ(NodePool::payloadOp(PR.Pool[Lit].Payload), 4u);
+  // Children: [1.0, 2.0, 3.0, 4.0, dim(2), dim(2)]
+  EXPECT_EQ(PR.Pool.childrenOf(Lit).size(), 6u);
+  checkInternedString(PR.Pool.childrenOf(Lit)[0], "1.0");
+  checkInternedString(PR.Pool.childrenOf(Lit)[3], "4.0");
+  checkInternedString(PR.Pool.childrenOf(Lit)[4], "2");
+  checkInternedString(PR.Pool.childrenOf(Lit)[5], "2");
+}
+
 TEST(ParserTestExpr, QualifiedNamedType) {
   parseSource("fn main(v: math::Vec){ let imm r: math::Vec = v; }");
 

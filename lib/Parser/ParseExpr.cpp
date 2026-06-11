@@ -160,6 +160,32 @@ NodeIndex Parser::parsePrefixExpr() {
     return Pool.alloc(NodeKind::ArrayLitExpr,
                       Span{Tok.TokenSpan.Start, End.End}, Elems);
   }
+  case Kind::kw_tensor: {
+    const Span Start = advance().TokenSpan; // consume 'tensor'
+    expect(Kind::l_square, DiagID::ExpectedTensorOpen);
+    llvm::SmallVector<NodeIndex, 8> Children;
+    {
+      const llvm::SaveAndRestore<bool> AllowStructLit(StructLitAllowed, true);
+      // Parse value(s) — comma-separated until ';'
+      Children.push_back(parseExpr(0));
+      while (consume(Kind::comma)) {
+        if (check(Kind::semi) || check(Kind::r_square))
+          break; // trailing comma guard
+        Children.push_back(parseExpr(0));
+      }
+    }
+    const auto NumValues = static_cast<uint16_t>(Children.size());
+    expect(Kind::semi, DiagID::ExpectedTensorLitSemi);
+    // Parse dims (comma-separated const exprs)
+    parseCommaSeparated(Children, Kind::r_square,
+                        [this] { return parseConstExpr(); });
+    if (static_cast<uint16_t>(Children.size()) == NumValues)
+      addError(peekToken().TokenSpan, DiagID::ExpectedTensorLitDim);
+    const Span End =
+        expect(Kind::r_square, DiagID::ExpectedTensorLitClose).TokenSpan;
+    return Pool.alloc(NodeKind::TensorLitExpr, Span{Start.Start, End.End},
+                      Children, NodePool::makeOpPayload(NumValues));
+  }
   case Kind::bang:
   case Kind::minus:
   case Kind::amp: {
