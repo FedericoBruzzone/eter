@@ -158,6 +158,23 @@ void Parser::parseCommaSeparated(llvm::SmallVectorImpl<NodeIndex> &Children,
 }
 
 //===----------------------------------------------------------------------===//
+// Paths
+//===----------------------------------------------------------------------===//
+
+bool Parser::parsePathSegments(Span &PathSpan) {
+  using Kind = lexer::Token::Kind;
+
+  bool IsPath = false;
+  while (check(Kind::colon_colon)) {
+    advance();
+    expect(Kind::identifier, DiagID::ExpectedPathSegment);
+    PathSpan.End = Stream.previous().TokenSpan.End;
+    IsPath = true;
+  }
+  return IsPath;
+}
+
+//===----------------------------------------------------------------------===//
 // Error recovery
 //===----------------------------------------------------------------------===//
 

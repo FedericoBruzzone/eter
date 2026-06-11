@@ -77,12 +77,17 @@ NodeIndex Parser::parsePrefixExpr() {
     return parseLitExpr(Tok);
   case Kind::identifier: {
     advance();
-    const InternedStr Name = Interner.intern(textOf(Tok.TokenSpan));
-    // Struct literal: Name { FieldInit* }. Suppressed in if/while/match
-    // headers, where the `{` opens the construct's block instead.
+    // Path expression: name :: name (:: name)*  (e.g. Animals::Cat).
+    Span PathSpan = Tok.TokenSpan;
+    const bool IsPath = parsePathSegments(PathSpan);
+    const InternedStr Name = Interner.intern(textOf(PathSpan));
+    // Struct literal: Name { FieldInit* }, possibly path-qualified
+    // (Animal::Spider{ … }). Suppressed in if/while/match headers, where
+    // the `{` opens the construct's block instead.
     if (StructLitAllowed && check(Kind::l_brace))
-      return parseStructLitExpr(Name, Tok.TokenSpan);
-    return Pool.allocLeaf(NodeKind::IdentExpr, Tok.TokenSpan, Name);
+      return parseStructLitExpr(Name, PathSpan);
+    return Pool.allocLeaf(IsPath ? NodeKind::PathExpr : NodeKind::IdentExpr,
+                          PathSpan, Name);
   }
   case Kind::l_paren: {
     advance();
@@ -118,6 +123,42 @@ NodeIndex Parser::parsePrefixExpr() {
 
     expect(Kind::r_paren, DiagID::ExpectedParenExprClose);
     return Inner;
+  }
+  case Kind::l_square: {
+    advance();
+    // Brackets disambiguate (cf. the parenthesised-expression case).
+    const llvm::SaveAndRestore<bool> AllowStructLit(StructLitAllowed, true);
+
+    // Empty array literal: []
+    if (check(Kind::r_square)) {
+      const Span End = advance().TokenSpan;
+      return Pool.alloc(NodeKind::ArrayLitExpr,
+                        Span{Tok.TokenSpan.Start, End.End}, {});
+    }
+
+    const NodeIndex First = parseExpr(0);
+
+    // Repeat form: [ value ; count ]  (e.g. [0; 5])
+    if (consume(Kind::semi)) {
+      const NodeIndex Count = parseConstExpr();
+      const Span End =
+          expect(Kind::r_square, DiagID::ExpectedArrayLitClose).TokenSpan;
+      return Pool.alloc(NodeKind::ArrayRepeatExpr,
+                        Span{Tok.TokenSpan.Start, End.End}, {First, Count});
+    }
+
+    // List form: [ Expr (, Expr)* ,? ]
+    llvm::SmallVector<NodeIndex, 8> Elems;
+    Elems.push_back(First);
+    while (consume(Kind::comma)) {
+      if (check(Kind::r_square)) // trailing comma
+        break;
+      Elems.push_back(parseExpr(0));
+    }
+    const Span End =
+        expect(Kind::r_square, DiagID::ExpectedArrayLitClose).TokenSpan;
+    return Pool.alloc(NodeKind::ArrayLitExpr,
+                      Span{Tok.TokenSpan.Start, End.End}, Elems);
   }
   case Kind::bang:
   case Kind::minus:

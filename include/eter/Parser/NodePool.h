@@ -69,9 +69,9 @@ inline constexpr NodeIndex NullNode{};
 ///     bits [29: 0] = InternedStr (name, max ~1 billion unique strings)
 ///
 /// Nodes that carry only a name (StructDecl, EnumDecl, UnionDecl, ModDecl,
-/// ConstDecl, UseDecl, IdentExpr, LitExpr, FieldExpr, TupleIndexExpr,
-/// StructLitExpr, FieldInit, Attribute, NamedType, AttrType, LiteralPat,
-/// FieldPat):
+/// ConstDecl, UseDecl, IdentExpr, PathExpr, LitExpr, FieldExpr,
+/// TupleIndexExpr, StructLitExpr, FieldInit, Attribute, NamedType, AttrType,
+/// LiteralPat, StructPat, TuplePat, FieldPat):
 ///     bits [31: 0] = InternedStr (name or literal text)
 ///
 /// Operator nodes (BinaryExpr, UnaryExpr):

@@ -157,6 +157,13 @@ private:
   void parseCommaSeparated(llvm::SmallVectorImpl<NodeIndex> &Children,
                            lexer::Token::Kind Close,
                            llvm::function_ref<NodeIndex()> ParseElement);
+
+  /// Consume `:: identifier` segments following an already-consumed leading
+  /// identifier, widening `PathSpan` to cover them. Returns true if at least
+  /// one segment was consumed (i.e. the name is a path, not a plain
+  /// identifier). Shared by path expressions, qualified type names, and
+  /// variant patterns.
+  bool parsePathSegments(Span &PathSpan);
   // Const Declarations (cf. ParseConst.cpp)
   NodeIndex parseConstDecl(llvm::ArrayRef<NodeIndex> Docs,
                            llvm::ArrayRef<NodeIndex> Attrs);
@@ -260,8 +267,15 @@ private:
   //===----------------------------------------------------------------------===//
 
   NodeIndex parsePat();
+  /// Struct pattern: Name { FieldPat* }. `Name` and `Start` come from the
+  /// already-consumed (possibly `::`-qualified) path; the current token must
+  /// be `{`.
   NodeIndex parseStructPat(InternedStr Name, Span Start);
+  /// Tuple pattern: Name ( Pat* ). `Name` is `NullStr` for anonymous tuple
+  /// patterns; the current token must be `(`.
   NodeIndex parseTuplePat(InternedStr Name, Span Start);
+  /// A field binding inside a struct pattern: name [: Pat].
+  NodeIndex parseFieldPat();
 
   //===----------------------------------------------------------------------===//
   // Regime

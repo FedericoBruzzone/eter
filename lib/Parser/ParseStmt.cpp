@@ -53,6 +53,7 @@ NodeIndex Parser::parseStmt() {
   case Kind::kw_true:
   case Kind::kw_false:
   case Kind::l_paren:
+  case Kind::l_square:
   case Kind::bang:
   case Kind::minus:
   case Kind::amp: {

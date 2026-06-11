@@ -294,6 +294,31 @@ struct IdentExpr : ASTNode<NodeKind::IdentExpr> {
   [[nodiscard]] InternedStr getName(const NodePool &P) const;
 };
 
+/// Typed view over a `PathExpr` node (e.g. Animals::Cat, u32::MAX).
+///
+/// Child layout: []
+/// Payload: InternedStr (full path text, `::`-separated)
+struct PathExpr : ASTNode<NodeKind::PathExpr> {
+  [[nodiscard]] InternedStr getPath(const NodePool &P) const;
+};
+
+/// Typed view over an `ArrayLitExpr` node: [ Expr* ]
+///
+/// Child layout: [Expr*]
+/// Payload: 0
+struct ArrayLitExpr : ASTNode<NodeKind::ArrayLitExpr> {
+  [[nodiscard]] llvm::ArrayRef<NodeIndex> getElements(const NodePool &P) const;
+};
+
+/// Typed view over an `ArrayRepeatExpr` node: [ Expr ; ConstExpr ]
+///
+/// Child layout: [Expr (value), ConstExpr (count)]
+/// Payload: 0
+struct ArrayRepeatExpr : ASTNode<NodeKind::ArrayRepeatExpr> {
+  [[nodiscard]] NodeIndex getValue(const NodePool &P) const;
+  [[nodiscard]] NodeIndex getCount(const NodePool &P) const;
+};
+
 /// Typed view over a `LitExpr` node.
 ///
 /// Child layout: []
@@ -316,13 +341,14 @@ struct NamedType : ASTNode<NodeKind::NamedType> {
   [[nodiscard]] InternedStr getName(const NodePool &P) const;
 };
 
-/// Typed view over an `ArrayType` node: [ Type ; Expr ]
+/// Typed view over an `ArrayType` node: [ Type ; ConstExpr (, ConstExpr)* ]
 ///
-/// Child layout: [Type (element type), Expr (size)]
+/// Child layout: [Type (element type), ConstExpr+ (one size per dimension)]
 /// Payload: 0
 struct ArrayType : ASTNode<NodeKind::ArrayType> {
   [[nodiscard]] NodeIndex getElementType(const NodePool &P) const;
-  [[nodiscard]] NodeIndex getSizeExpr(const NodePool &P) const;
+  /// The size expressions, one per dimension (tensors have several).
+  [[nodiscard]] llvm::ArrayRef<NodeIndex> getSizeExprs(const NodePool &P) const;
 };
 
 /// Typed view over a `TupleType` node: ( Type, Type, ... )
