@@ -34,21 +34,46 @@ NodeIndex Parser::parseType() {
     return Pool.alloc(NodeKind::TupleType, Span{Start.Start, End.End}, Types);
   }
 
-  const Span NameSpan = peekToken().TokenSpan;
-  const InternedStr Name =
-      expectAndIntern(Kind::identifier, DiagID::ExpectedTypeName);
+  if (check(Kind::l_square))
+    return parseArrayType();
 
-  return Pool.allocLeaf(NodeKind::NamedType, NameSpan, Name);
+  return parseNamedType();
 }
 
 NodeIndex Parser::parseNamedType() {
   ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] parseNamedType\n");
-  llvm::report_fatal_error("TODO: implement Parser::parseNamedType");
+  using Kind = lexer::Token::Kind;
+
+  Span Full = peekToken().TokenSpan;
+  expect(Kind::identifier, DiagID::ExpectedTypeName);
+
+  // Qualified name: name :: name (:: name)*  (e.g. math::Vec).
+  parsePathSegments(Full);
+
+  return Pool.allocLeaf(NodeKind::NamedType, Full,
+                        Interner.intern(textOf(Full)));
 }
 
 NodeIndex Parser::parseArrayType() {
   ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] parseArrayType\n");
-  llvm::report_fatal_error("TODO: implement Parser::parseArrayType");
+  using Kind = lexer::Token::Kind;
+
+  const Span Start = advance().TokenSpan; // consume '[' (cf. parseType)
+
+  llvm::SmallVector<NodeIndex, 4> Children;
+  Children.push_back(parseType());
+
+  expect(Kind::semi, DiagID::ExpectedArrayTypeSemi);
+
+  // One size per dimension: [i32; 3] is an array, [f32; 2, 2] a tensor.
+  parseCommaSeparated(Children, Kind::r_square,
+                      [this] { return parseConstExpr(); });
+  if (Children.size() == 1)
+    addError(peekToken().TokenSpan, DiagID::ExpectedArraySize);
+
+  const Span End =
+      expect(Kind::r_square, DiagID::ExpectedArrayTypeClose).TokenSpan;
+  return Pool.alloc(NodeKind::ArrayType, Span{Start.Start, End.End}, Children);
 }
 
 } // namespace eter::parser

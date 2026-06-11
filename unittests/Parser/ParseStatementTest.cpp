@@ -291,3 +291,108 @@ TEST(ParserTestStmt, ErrorRecoveryThroughStatementKeyword) {
   EXPECT_EQ(PR.Pool.kindOf(BodyChildren[0]), NodeKind::Error);
   EXPECT_EQ(PR.Pool.kindOf(BodyChildren[1]), NodeKind::LetStmt);
 }
+
+//===----------------------------------------------------------------------===//
+// Match patterns: tuple, struct, and path patterns
+//===----------------------------------------------------------------------===//
+
+TEST(ParserTestStmt, MatchPathUnitVariantPat) {
+  parseSource("fn main() { match b { Balls::Tennis => 1, _ => 0 } }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Match = PR.Pool.childrenOf(fnBody())[0];
+  EXPECT_TRUE(checkChildrenKinds(Match, NodeKind::IdentExpr, NodeKind::MatchArm,
+                                 NodeKind::MatchArm));
+
+  // A `::`-qualified name is an IdentPat carrying the full path; name
+  // resolution distinguishes unit variants from bindings.
+  const NodeIndex Pat = PR.Pool.childrenOf(PR.Pool.childrenOf(Match)[1])[0];
+  EXPECT_EQ(PR.Pool.kindOf(Pat), NodeKind::IdentPat);
+  checkInternedString(Pat, "Balls::Tennis");
+}
+
+TEST(ParserTestStmt, MatchTupleVariantPat) {
+  parseSource(
+      "fn main() { match a { Animals::Dog(name, age) => age, _ => 0 } }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Match = PR.Pool.childrenOf(fnBody())[0];
+  const NodeIndex Pat = PR.Pool.childrenOf(PR.Pool.childrenOf(Match)[1])[0];
+  EXPECT_EQ(PR.Pool.kindOf(Pat), NodeKind::TuplePat);
+  checkInternedString(Pat, "Animals::Dog");
+  checkSpan(Pat, "Animals::Dog(name, age)");
+  EXPECT_TRUE(checkChildrenKinds(Pat, NodeKind::IdentPat, NodeKind::IdentPat));
+  checkInternedString(PR.Pool.childrenOf(Pat)[0], "name");
+  checkInternedString(PR.Pool.childrenOf(Pat)[1], "age");
+}
+
+TEST(ParserTestStmt, MatchStructVariantPat) {
+  parseSource(
+      "fn main() { match a { Animals::Cat{ name, age: x } => x, _ => 0 } }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Match = PR.Pool.childrenOf(fnBody())[0];
+  const NodeIndex Pat = PR.Pool.childrenOf(PR.Pool.childrenOf(Match)[1])[0];
+  EXPECT_EQ(PR.Pool.kindOf(Pat), NodeKind::StructPat);
+  checkInternedString(Pat, "Animals::Cat");
+  EXPECT_TRUE(checkChildrenKinds(Pat, NodeKind::FieldPat, NodeKind::FieldPat));
+
+  // Shorthand `name`: a leaf FieldPat binding the field.
+  const NodeIndex F0 = PR.Pool.childrenOf(Pat)[0];
+  checkInternedString(F0, "name");
+  EXPECT_EQ(PR.Pool.childrenOf(F0).size(), 0u);
+
+  // `age: x`: a FieldPat with a nested pattern child.
+  const NodeIndex F1 = PR.Pool.childrenOf(Pat)[1];
+  checkInternedString(F1, "age");
+  EXPECT_TRUE(checkChildrenKinds(F1, NodeKind::IdentPat));
+  checkInternedString(PR.Pool.childrenOf(F1)[0], "x");
+}
+
+TEST(ParserTestStmt, MatchAnonymousTuplePat) {
+  parseSource("fn main() { match t { (a, (b, c)) => a, _ => 0 } }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Match = PR.Pool.childrenOf(fnBody())[0];
+  const NodeIndex Pat = PR.Pool.childrenOf(PR.Pool.childrenOf(Match)[1])[0];
+  EXPECT_EQ(PR.Pool.kindOf(Pat), NodeKind::TuplePat);
+  // Anonymous tuple pattern: NullStr payload.
+  EXPECT_EQ(NodePool::payloadStr(PR.Pool[Pat].Payload), NullStr);
+  EXPECT_TRUE(checkChildrenKinds(Pat, NodeKind::IdentPat, NodeKind::TuplePat));
+
+  const NodeIndex Inner = PR.Pool.childrenOf(Pat)[1];
+  EXPECT_TRUE(
+      checkChildrenKinds(Inner, NodeKind::IdentPat, NodeKind::IdentPat));
+}
+
+TEST(ParserTestStmt, MatchTuplePatWithLiteralsAndWildcard) {
+  parseSource("fn main() { match t { Point(0, _) => 1, _ => 0 } }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Match = PR.Pool.childrenOf(fnBody())[0];
+  const NodeIndex Pat = PR.Pool.childrenOf(PR.Pool.childrenOf(Match)[1])[0];
+  EXPECT_EQ(PR.Pool.kindOf(Pat), NodeKind::TuplePat);
+  checkInternedString(Pat, "Point");
+  EXPECT_TRUE(
+      checkChildrenKinds(Pat, NodeKind::LiteralPat, NodeKind::WildcardPat));
+}
+
+TEST(ParserTestStmt, MatchStructPatBadFieldSingleError) {
+  parseSource("fn main() { match a { Animals::Cat{ 42 } => 1, _ => 0 } }");
+
+  EXPECT_FALSE(PR.ok());
+  EXPECT_TRUE(hasDiag(DiagID::ExpectedFieldPatName));
+  EXPECT_EQ(PR.Errors.size(), 1u);
+}
+
+TEST(ParserTestStmt, MatchTuplePatMissingClose) {
+  parseSource("fn main() { match a { Dog(x, y => 1, _ => 0 } }");
+
+  EXPECT_FALSE(PR.ok());
+  EXPECT_TRUE(hasDiag(DiagID::ExpectedTuplePatClose));
+}

@@ -860,6 +860,194 @@ TEST(ParserTestExpr, TupleTypeMissingClose) {
 }
 
 //===----------------------------------------------------------------------===//
+// Path expressions
+//===----------------------------------------------------------------------===//
+
+TEST(ParserTestExpr, PathExprBasic) {
+  parseSource("fn main(){ let imm m = u32::MAX; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Path = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_EQ(PR.Pool.kindOf(Path), NodeKind::PathExpr);
+  checkInternedString(Path, "u32::MAX");
+  checkSpan(Path, "u32::MAX");
+  EXPECT_EQ(PR.Pool.childrenOf(Path).size(), 0u);
+}
+
+TEST(ParserTestExpr, PathExprMultiSegment) {
+  parseSource("fn main(){ let imm v = a::b::c; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Path = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_EQ(PR.Pool.kindOf(Path), NodeKind::PathExpr);
+  checkInternedString(Path, "a::b::c");
+}
+
+TEST(ParserTestExpr, PathCallExpr) {
+  parseSource("fn main(){ self::helper(1); }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Call = PR.Pool.childrenOf(fnBody())[0];
+  EXPECT_TRUE(checkChildrenKinds(Call, NodeKind::PathExpr, NodeKind::ArgList));
+  checkInternedString(PR.Pool.childrenOf(Call)[0], "self::helper");
+}
+
+TEST(ParserTestExpr, PathStructLit) {
+  // The enum-variant construction syntax from the specification.
+  parseSource(
+      "fn main(){ let imm a = Animal::Spider{ eyes: 8, poisonous: false }; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Lit = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_EQ(PR.Pool.kindOf(Lit), NodeKind::StructLitExpr);
+  checkInternedString(Lit, "Animal::Spider");
+  EXPECT_TRUE(
+      checkChildrenKinds(Lit, NodeKind::FieldInit, NodeKind::FieldInit));
+  checkInternedString(PR.Pool.childrenOf(Lit)[0], "eyes");
+  checkInternedString(PR.Pool.childrenOf(Lit)[1], "poisonous");
+}
+
+TEST(ParserTestExpr, PathUnitVariant) {
+  parseSource("fn main(){ let imm b = Animal::Reptile; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Path = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_EQ(PR.Pool.kindOf(Path), NodeKind::PathExpr);
+  checkInternedString(Path, "Animal::Reptile");
+}
+
+TEST(ParserTestExpr, PathMissingSegment) {
+  parseSource("fn main(){ let imm x = a::; }");
+
+  EXPECT_FALSE(PR.ok());
+  EXPECT_TRUE(hasDiag(DiagID::ExpectedPathSegment));
+}
+
+//===----------------------------------------------------------------------===//
+// Arrays and tensors
+//===----------------------------------------------------------------------===//
+
+TEST(ParserTestExpr, ArrayLitAndType) {
+  // The example from the language specification.
+  parseSource("fn main(){ let imm arr: [i32; 3] = [1, 2, 3]; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(
+      checkChildrenKinds(Let, NodeKind::ArrayType, NodeKind::ArrayLitExpr));
+
+  const NodeIndex Ty = PR.Pool.childrenOf(Let)[0];
+  checkSpan(Ty, "[i32; 3]");
+  EXPECT_TRUE(checkChildrenKinds(Ty, NodeKind::NamedType, NodeKind::LitExpr));
+  checkInternedString(PR.Pool.childrenOf(Ty)[0], "i32");
+  checkInternedString(PR.Pool.childrenOf(Ty)[1], "3");
+
+  const NodeIndex Arr = PR.Pool.childrenOf(Let)[1];
+  checkSpan(Arr, "[1, 2, 3]");
+  EXPECT_TRUE(checkChildrenKinds(Arr, NodeKind::LitExpr, NodeKind::LitExpr,
+                                 NodeKind::LitExpr));
+}
+
+TEST(ParserTestExpr, ArrayRepeatLit) {
+  parseSource("fn main(){ let imm zeros: [i32; 5] = [0; 5]; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Rep = PR.Pool.childrenOf(firstLet())[1];
+  EXPECT_EQ(PR.Pool.kindOf(Rep), NodeKind::ArrayRepeatExpr);
+  checkSpan(Rep, "[0; 5]");
+  EXPECT_TRUE(checkChildrenKinds(Rep, NodeKind::LitExpr, NodeKind::LitExpr));
+  checkInternedString(PR.Pool.childrenOf(Rep)[0], "0");
+  checkInternedString(PR.Pool.childrenOf(Rep)[1], "5");
+}
+
+TEST(ParserTestExpr, ArrayLitEmptyAndTrailingComma) {
+  parseSource("fn main(){ let imm a = []; let imm b = [1, 2, ]; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex A = PR.Pool.childrenOf(PR.Pool.childrenOf(fnBody())[0])[0];
+  EXPECT_EQ(PR.Pool.kindOf(A), NodeKind::ArrayLitExpr);
+  EXPECT_EQ(PR.Pool.childrenOf(A).size(), 0u);
+
+  const NodeIndex B = PR.Pool.childrenOf(PR.Pool.childrenOf(fnBody())[1])[0];
+  EXPECT_TRUE(checkChildrenKinds(B, NodeKind::LitExpr, NodeKind::LitExpr));
+}
+
+TEST(ParserTestExpr, TensorTypeAndNestedLit) {
+  // The tensor example from the language specification.
+  parseSource(
+      "fn main(){ let imm m: [f32; 2, 2] = [[1.0, 0.0], [0.0, 1.0]]; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Let = firstLet();
+  EXPECT_TRUE(
+      checkChildrenKinds(Let, NodeKind::ArrayType, NodeKind::ArrayLitExpr));
+
+  // Tensor type: element type + one size per dimension.
+  const NodeIndex Ty = PR.Pool.childrenOf(Let)[0];
+  EXPECT_TRUE(checkChildrenKinds(Ty, NodeKind::NamedType, NodeKind::LitExpr,
+                                 NodeKind::LitExpr));
+
+  const NodeIndex Lit = PR.Pool.childrenOf(Let)[1];
+  EXPECT_TRUE(
+      checkChildrenKinds(Lit, NodeKind::ArrayLitExpr, NodeKind::ArrayLitExpr));
+}
+
+TEST(ParserTestExpr, TensorChainedIndexAccess) {
+  // Tensor elements are accessed by chained indexing (cf. the language
+  // specification): t[0][1] is (t[0])[1].
+  parseSource("fn main(){ let imm e: i32 = t[0][1]; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Outer = PR.Pool.childrenOf(firstLet())[1];
+  EXPECT_EQ(PR.Pool.kindOf(Outer), NodeKind::IndexExpr);
+  checkSpan(Outer, "t[0][1]");
+  EXPECT_TRUE(
+      checkChildrenKinds(Outer, NodeKind::IndexExpr, NodeKind::LitExpr));
+  checkInternedString(PR.Pool.childrenOf(Outer)[1], "1");
+
+  const NodeIndex Inner = PR.Pool.childrenOf(Outer)[0];
+  checkSpan(Inner, "t[0]");
+  EXPECT_TRUE(
+      checkChildrenKinds(Inner, NodeKind::IdentExpr, NodeKind::LitExpr));
+  checkInternedString(PR.Pool.childrenOf(Inner)[0], "t");
+  checkInternedString(PR.Pool.childrenOf(Inner)[1], "0");
+}
+
+TEST(ParserTestExpr, QualifiedNamedType) {
+  parseSource("fn main(){ let imm v: math::Vec = x; }");
+
+  EXPECT_TRUE(PR.ok());
+
+  const NodeIndex Ty = PR.Pool.childrenOf(firstLet())[0];
+  EXPECT_EQ(PR.Pool.kindOf(Ty), NodeKind::NamedType);
+  checkInternedString(Ty, "math::Vec");
+}
+
+TEST(ParserTestExpr, ArrayTypeMissingSize) {
+  parseSource("fn main(){ let imm a: [i32; ] = x; }");
+
+  EXPECT_FALSE(PR.ok());
+  EXPECT_TRUE(hasDiag(DiagID::ExpectedArraySize));
+}
+
+TEST(ParserTestExpr, ArrayLitMissingClose) {
+  parseSource("fn main(){ let imm a = [1, 2; }");
+
+  EXPECT_FALSE(PR.ok());
+  EXPECT_TRUE(hasDiag(DiagID::ExpectedArrayLitClose));
+}
+
+//===----------------------------------------------------------------------===//
 // Field access
 //===----------------------------------------------------------------------===//
 

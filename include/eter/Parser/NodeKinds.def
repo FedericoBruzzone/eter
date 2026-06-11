@@ -227,13 +227,18 @@ ETER_EXPR(FieldExpr)
 /// Children: [Expr (base)].  Payload: InternedStr (index literal text).
 ETER_EXPR(TupleIndexExpr)
 
-/// Struct literal: Name { FieldInit* }
-/// Children: [FieldInit*].  Payload: InternedStr (struct name).
+/// Struct literal: Name { FieldInit* }, where Name may be `::`-qualified
+/// (e.g. Animal::Spider{ eyes: 8 }).
+/// Children: [FieldInit*].  Payload: InternedStr (struct name or path text).
 ETER_EXPR(StructLitExpr)
 
 /// Array literal: [ Expr* ]
 /// Children: [Expr*].  Payload: 0.
 ETER_EXPR(ArrayLitExpr)
+
+/// Array repeat literal: [ Expr ; ConstExpr ]  (e.g. [0; 5])
+/// Children: [Expr (value), ConstExpr (count)].  Payload: 0.
+ETER_EXPR(ArrayRepeatExpr)
 
 /// Tuple expression: ( Expr, Expr, ... )
 /// Zero children encode the unit value `()`. A one-element tuple requires a
@@ -250,6 +255,11 @@ ETER_NODE(FieldInit)
 /// Children: [].  Payload: InternedStr (name).
 ETER_EXPR(IdentExpr)
 
+/// Path expression: name :: name (:: name)*  (e.g. Animals::Cat, u32::MAX)
+/// Children: [].  Payload: InternedStr (full path text, interned — same
+/// encoding as UseDecl).
+ETER_EXPR(PathExpr)
+
 /// Literal value: integer, float, boolean, string, or character.
 /// Children: [].  Payload: InternedStr (literal text as it appears in source).
 ETER_EXPR(LitExpr)
@@ -262,12 +272,14 @@ ETER_EXPR(PropagateExpr)
 // Types
 //===----------------------------------------------------------------------===//
 
-/// A named type: i32, f32, Point (no generics in v0.1).
-/// Children: [].  Payload: InternedStr (type name).
+/// A named type: i32, f32, Point, math::Vec (no generics in v0.1).
+/// Children: [].  Payload: InternedStr (type name, possibly `::`-qualified).
 ETER_TYPE(NamedType)
 
-/// Array type: [ Type ; Expr ]
-/// Children: [Type, Expr (size)].  Payload: 0.
+/// Array or tensor type: [ Type ; ConstExpr (, ConstExpr)* ]
+/// One size expression per dimension: [i32; 3] is an array, [f32; 2, 2] a
+/// tensor.
+/// Children: [Type, ConstExpr+ (sizes)].  Payload: 0.
 ETER_TYPE(ArrayType)
 
 /// Tuple type: ( Type, Type, ... )
