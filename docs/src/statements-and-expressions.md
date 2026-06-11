@@ -232,42 +232,37 @@ if result == "Success" {
 
 ### Loop expressions
 
-Loop expressions are used to execute a block of code multiple times. Because they are expressions, they can optionally evaluate to a value (e.g., by using the `break` keyword).
+Loop expressions are used to execute a block of code multiple times. Because they are expressions, they can appear anywhere an expression is expected (currently evaluating to `unit`; value-returning loops via `break` are planned).
 
 Eter supports both `for` and `while` loops.
 
-#### While loops
+#### While loops
 
-The simple `while` loop continues to execute as long as its condition is true. 
-Consider the following example, which decrements a variable until it reaches zero:
+The `while` loop continues executing as long as its condition is true.
+
 ```rust
-// while loop
 let mut n: i32 = 5;
 while n > 0 {
     n -= 1;
 }
 ```
-Infinite loops can be created using `while true` or the `loop` keyword, which will continue indefinitely until explicitly broken out of.
-For example:
+
+An infinite loop is written as `while true`:
+
 ```rust
-// infinite loop using `while`
 while true {
     do_something();
 }
 ```
 
-Since they are expressions, `while` loops can also be used to compute a value by using the `break` statement to exit the loop and return a value.
-For example:
+Since `while` is an expression it can appear as the RHS of a binding:
+
 ```rust
-// loop expression that evaluates to a value using `break`
-let mut counter: i32 = 0;
-let final_value: i32 = while true {
-    counter += 1;
-    if counter == 10 {
-        break counter * 2; // The value of the loop expression will be 20 when it breaks
-    }
-};
+let done: () = while false { };
 ```
+
+> [!WARNING]
+> Value-returning loops via `break <expr>` and the `loop` keyword are planned but not yet implemented.
 
 #### For loops
 
@@ -321,7 +316,7 @@ match coords {
 A `ret` expression immediately terminates the current function or closure and evaluates to a value that is passed back to the caller. A `ret` expression without a value implies returning `unit`.
 
 ```rust
-fn get_positive(val: i32) -> i32 {
+fn get_positive(val: i32): i32 {
     if val < 0 {
         ret 0; // Early return expression
     }
@@ -333,14 +328,14 @@ fn get_positive(val: i32) -> i32 {
 The **implicit return** in Eter is allowed only when there is a single expression within a scope (e.g., a function body or a block). If there are multiple statements, an explicit `ret` is required to indicate the return value.
 For instance, in the following function, the implicit return is not allowed because there are multiple statements:
 ```rust
-fn compute_value(x: i32) -> i32 {
+fn compute_value(x: i32): i32 {
     let intermediate: i32 = x * 2; // Statement (requires a semicolon)
     ret intermediate + 1;           // Explicit return expression
 }
 ```
 While in this function, the implicit return is allowed because there is only a single expression:
 ```rust
-fn compute_value(x: i32) -> i32 {
+fn compute_value(x: i32): i32 {
     x * 2 + 1 // Single expression (no semicolon, implicit return)
 }
 ```
