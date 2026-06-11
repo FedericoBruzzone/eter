@@ -56,7 +56,8 @@ NodeIndex Parser::parseStmt() {
   case Kind::l_square:
   case Kind::bang:
   case Kind::minus:
-  case Kind::amp: {
+  case Kind::amp:
+  case Kind::kw_tensor: {
     NodeIndex Expr = parseExpr(0);
     // If expression parsing failed, resync to the next statement boundary
     // before continuing. Otherwise still emit a missing-`;` diagnostic if

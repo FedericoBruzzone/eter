@@ -160,6 +160,14 @@ NodeIndex Parser::parsePrefixExpr() {
     return Pool.alloc(NodeKind::ArrayLitExpr,
                       Span{Tok.TokenSpan.Start, End.End}, Elems);
   }
+  case Kind::kw_if:
+    return parseIfExpr();
+  case Kind::kw_while:
+    return parseWhileStmt();
+  case Kind::kw_match:
+    return parseMatchExpr();
+  case Kind::l_brace:
+    return parseBlockExpr();
   case Kind::kw_tensor: {
     const Span Start = advance().TokenSpan; // consume 'tensor'
     expect(Kind::l_square, DiagID::ExpectedTensorOpen);
