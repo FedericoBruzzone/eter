@@ -148,22 +148,37 @@ Access expressions allow you to retrieve specific elements from compound types l
 
 #### Array and index expressions
 
-Array expressions create fixed-size collections of elements. Index expressions retrieve elements from an array or slice using brackets `[]`. Indexing is always zero-based.
+Array expressions create 1D, fixed-size, stack-allocated collections of elements. Index expressions retrieve elements using single-index bracket syntax `a[i]`. Indexing is always zero-based.
 
 ```rust
-let a: [i32; 3] = [1, 2, 3];        // Array expression (list of elements)
-let zeros: [i32; 5] = [0; 5];       // Array expression (repeated value: [0, 0, 0, 0, 0])
-let first: i32 = a[0];              // Index expression (accessing the first element)
+let a: [i32; 3] = [1, 2, 3];        // list literal
+let zeros: [i32; 5] = [0; 5];       // repeat literal: [0, 0, 0, 0, 0]
+let first: i32 = a[0];              // single-index access
 ```
 
 #### Tensor and index expressions
 
-Tensor expressions create fixed-size, multi-dimensional collections of homogeneous elements (nD tensors). Tensor literal expressions use nested arrays.
+Tensor expressions create nD, fixed-size, stack-allocated mathematical value types. Tensors carry shape, stride, and offset metadata, enabling O(1) slicing, transposing, and broadcasting. The `tensor` keyword is required in both the type and the literal.
+
+Two literal forms are available:
 
 ```rust
-let t: [i32; 2, 2] = [[1, 2], [3, 4]]; // Tensor expression (2x2 matrix)
-let element: i32 = t[0][1];            // Index expression (accessing the element at row 0, column 1, which is 2)
+// Repeat form: single value broadcast over the entire shape
+let zeros: tensor[f32; 2, 3] = tensor[0.0; 2, 3];
+
+// Flat form: all elements in row-major order, followed by the shape after ';'
+// Element count must equal the product of the dimensions (2×2 = 4 here).
+let mat: tensor[f32; 2, 2] = tensor[1.0, 2.0, 3.0, 4.0; 2, 2];
 ```
+
+Tensor elements are accessed with a **comma-separated multi-index** inside `[]`:
+
+```rust
+let e: f32 = mat[0, 1];    // row 0, column 1  →  2.0
+```
+
+> [!NOTE]
+> Arrays (`[T; N]`) and tensors (`tensor[T; N]`) are distinct, non-interchangeable types. Use arrays for plain 1D storage; use tensors for multi-dimensional work.
 
 #### Tuple and index expressions
 

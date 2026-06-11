@@ -94,28 +94,55 @@ C-strings are a sequence of characters (non unicode encoded) terminated by a nul
  ```rust
  let say: str = @c"Hello";
  ```
-### Array types 
+### Array types
 
-Arrays represent 1D homogeneous product types. They are a statically sized, contiguous blocks of memory containing elements of a single type `T`. 
+Arrays are **1D**, statically-sized, stack-allocated, contiguous blocks of memory containing elements of a single type `T`. They have no stride, shape metadata, or offset — just flat linear storage.
 
 The syntax for an array type is `[T; SIZE]`.
 
 ```rust
-let arr: [i32; 3] = [1, 2, 3];
+let arr: [i32; 3] = [1, 2, 3];          // list literal
+let zeros: [i32; 5] = [0; 5];           // repeat literal: [0, 0, 0, 0, 0]
+let first: i32 = arr[0];                // single-index access
 ```
 
-### Tensor types 
+### Tensor types
 
-Tensors represent multi-dimensional (nD) homogeneous product types. Like arrays, they are statically sized collections of a single type `T`, but structured across multiple dimensions.
+Tensors are **nD** mathematical value types, stack-allocated. Unlike arrays they carry shape, stride, and offset metadata, which enables O(1) slicing, transposing, and broadcasting without copying data.
 
-The syntax for a tensor type separates the dimensions with commas: `[T; SIZE1, SIZE2, ...]`.
+The `tensor` keyword introduces both the type and literal syntax. Dimensions are comma-separated after `;`.
 
 ```rust
-let matrix: [f32; 2, 2] = [[1.0, 0.0], [0.0, 1.0]];
+// Type syntax: tensor[ElementType; D1, D2, ...]
+let t: tensor[f32; 2, 3]              // 2×3 matrix of f32
+let cube: tensor[i32; 4, 4, 4]        // 4×4×4 tensor of i32
 ```
 
-> [!NOTE]  
-> Compound types like arrays and tensors are not "objects". Dynamic, heap-allocated collections (such as vectors or dynamic tensors) are managed through the standard library or via gradual typing features, rather than being built into the static compound type syntax.
+**Tensor literals** come in two forms:
+
+| Form | Syntax | Example |
+|:-----|:-------|:--------|
+| Repeat | `tensor[value; D1, D2, ...]` | `tensor[0.0; 2, 3]` |
+| Flat | `tensor[v1, v2, ...; D1, D2, ...]` | `tensor[1.0, 2.0, 3.0, 4.0; 2, 2]` |
+
+The repeat form broadcasts a single value across the entire shape. The flat form lists all elements in row-major order followed by the shape; the element count must equal the product of the dimensions (checked by the semantic phase).
+
+```rust
+let zeros: tensor[f32; 2, 3] = tensor[0.0; 2, 3];                   // repeat
+let mat: tensor[f32; 2, 2]   = tensor[1.0, 2.0, 3.0, 4.0; 2, 2];  // flat
+```
+
+**Tensor index access** uses a comma-separated multi-index inside `[]`:
+
+```rust
+let e: f32 = mat[0, 1];    // element at row 0, column 1  →  2.0
+```
+
+> [!NOTE]
+> Arrays and tensors are **distinct types** — `[T; N]` is a 1D array, `tensor[T; N]` is a 1D tensor. They are not interchangeable. Use arrays when you need plain contiguous storage; use tensors when you need multi-dimensional indexing, slicing, or broadcasting.
+
+> [!NOTE]
+> Compound types like arrays and tensors are not "objects". Dynamic, heap-allocated collections are managed through the standard library rather than being built into the static compound type syntax.
 
 ### Tuple types
 
