@@ -124,42 +124,8 @@ NodeIndex Parser::parsePrefixExpr() {
     expect(Kind::r_paren, DiagID::ExpectedParenExprClose);
     return Inner;
   }
-  case Kind::l_square: {
-    advance();
-    // Brackets disambiguate (cf. the parenthesised-expression case).
-    const llvm::SaveAndRestore<bool> AllowStructLit(StructLitAllowed, true);
-
-    // Empty array literal: []
-    if (check(Kind::r_square)) {
-      const Span End = advance().TokenSpan;
-      return Pool.alloc(NodeKind::ArrayLitExpr,
-                        Span{Tok.TokenSpan.Start, End.End}, {});
-    }
-
-    const NodeIndex First = parseExpr(0);
-
-    // Repeat form: [ value ; count ]  (e.g. [0; 5])
-    if (consume(Kind::semi)) {
-      const NodeIndex Count = parseConstExpr();
-      const Span End =
-          expect(Kind::r_square, DiagID::ExpectedArrayLitClose).TokenSpan;
-      return Pool.alloc(NodeKind::ArrayRepeatExpr,
-                        Span{Tok.TokenSpan.Start, End.End}, {First, Count});
-    }
-
-    // List form: [ Expr (, Expr)* ,? ]
-    llvm::SmallVector<NodeIndex, 8> Elems;
-    Elems.push_back(First);
-    while (consume(Kind::comma)) {
-      if (check(Kind::r_square)) // trailing comma
-        break;
-      Elems.push_back(parseExpr(0));
-    }
-    const Span End =
-        expect(Kind::r_square, DiagID::ExpectedArrayLitClose).TokenSpan;
-    return Pool.alloc(NodeKind::ArrayLitExpr,
-                      Span{Tok.TokenSpan.Start, End.End}, Elems);
-  }
+  case Kind::l_square:
+    return parseArrayLitExpr();
   case Kind::kw_if:
     return parseIfExpr();
   case Kind::kw_while:
@@ -168,32 +134,8 @@ NodeIndex Parser::parsePrefixExpr() {
     return parseMatchExpr();
   case Kind::l_brace:
     return parseBlockExpr();
-  case Kind::kw_tensor: {
-    const Span Start = advance().TokenSpan; // consume 'tensor'
-    expect(Kind::l_square, DiagID::ExpectedTensorOpen);
-    llvm::SmallVector<NodeIndex, 8> Children;
-    {
-      const llvm::SaveAndRestore<bool> AllowStructLit(StructLitAllowed, true);
-      // Parse value(s) — comma-separated until ';'
-      Children.push_back(parseExpr(0));
-      while (consume(Kind::comma)) {
-        if (check(Kind::semi) || check(Kind::r_square))
-          break; // trailing comma guard
-        Children.push_back(parseExpr(0));
-      }
-    }
-    const auto NumValues = static_cast<uint16_t>(Children.size());
-    expect(Kind::semi, DiagID::ExpectedTensorLitSemi);
-    // Parse dims (comma-separated const exprs)
-    parseCommaSeparated(Children, Kind::r_square,
-                        [this] { return parseConstExpr(); });
-    if (static_cast<uint16_t>(Children.size()) == NumValues)
-      addError(peekToken().TokenSpan, DiagID::ExpectedTensorLitDim);
-    const Span End =
-        expect(Kind::r_square, DiagID::ExpectedTensorLitClose).TokenSpan;
-    return Pool.alloc(NodeKind::TensorLitExpr, Span{Start.Start, End.End},
-                      Children, NodePool::makeOpPayload(NumValues));
-  }
+  case Kind::kw_tensor:
+    return parseTensorLitExpr();
   case Kind::bang:
   case Kind::minus:
   case Kind::amp: {
@@ -257,37 +199,9 @@ NodeIndex Parser::parsePostfixOrCallExpr(NodeIndex Lhs) {
           NodePool::makePayload(Field, Regime::None));
       continue;
     }
-    case Kind::l_square: {
-      advance(); // consume '['
-      const Span LhsSpan = Pool.spanOf(Lhs);
-
-      // Collect all comma-separated index expressions.
-      // [base, idx0]      → IndexExpr       (array / 1D-tensor single index)
-      // [base, idx0, ...] → TensorIndexExpr (2+ indices for ND tensors)
-      llvm::SmallVector<NodeIndex, 4> Children;
-      Children.push_back(Lhs);
-      {
-        const llvm::SaveAndRestore<bool> AllowStructLit(StructLitAllowed, true);
-        Children.push_back(parseExpr());
-        while (consume(Kind::comma)) {
-          if (check(Kind::r_square))
-            break; // trailing comma
-          Children.push_back(parseExpr());
-        }
-      }
-      const bool IsTensor = Children.size() > 2;
-      const Span Close =
-          expect(Kind::r_square, IsTensor ? DiagID::ExpectedTensorIndexClose
-                                          : DiagID::ExpectedRSquare)
-              .TokenSpan;
-      if (IsTensor)
-        Lhs = Pool.alloc(NodeKind::TensorIndexExpr,
-                         Span{LhsSpan.Start, Close.End}, Children);
-      else
-        Lhs = Pool.alloc(NodeKind::IndexExpr, Span{LhsSpan.Start, Close.End},
-                         {Children[0], Children[1]});
+    case Kind::l_square:
+      Lhs = parsePostfixIndex(Lhs);
       continue;
-    }
     case Kind::question: {
       advance();
       Lhs = Pool.alloc(
@@ -423,6 +337,106 @@ std::pair<int, int> Parser::infixBindingPower(lexer::Token::Kind K) {
   default:
     return {-1, -1};
   }
+}
+
+NodeIndex Parser::parseArrayLitExpr() {
+  ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] parseArrayLitExpr\n");
+  using Kind = lexer::Token::Kind;
+
+  const Span Start = advance().TokenSpan; // consume '['
+  const llvm::SaveAndRestore<bool> AllowStructLit(StructLitAllowed, true);
+
+  // Empty array literal: []
+  if (check(Kind::r_square)) {
+    const Span End = advance().TokenSpan;
+    return Pool.alloc(NodeKind::ArrayLitExpr, Span{Start.Start, End.End}, {});
+  }
+
+  const NodeIndex First = parseExpr(0);
+
+  // Repeat form: [ value ; count ]  (e.g. [0; 5])
+  if (consume(Kind::semi)) {
+    const NodeIndex Count = parseConstExpr();
+    const Span End =
+        expect(Kind::r_square, DiagID::ExpectedArrayLitClose).TokenSpan;
+    return Pool.alloc(NodeKind::ArrayRepeatExpr, Span{Start.Start, End.End},
+                      {First, Count});
+  }
+
+  // List form: [ Expr (, Expr)* ,? ]
+  llvm::SmallVector<NodeIndex, 8> Elems;
+  Elems.push_back(First);
+  while (consume(Kind::comma)) {
+    if (check(Kind::r_square)) // trailing comma
+      break;
+    Elems.push_back(parseExpr(0));
+  }
+  const Span End =
+      expect(Kind::r_square, DiagID::ExpectedArrayLitClose).TokenSpan;
+  return Pool.alloc(NodeKind::ArrayLitExpr, Span{Start.Start, End.End}, Elems);
+}
+
+NodeIndex Parser::parseTensorLitExpr() {
+  ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] parseTensorLitExpr\n");
+  using Kind = lexer::Token::Kind;
+
+  const Span Start = advance().TokenSpan; // consume 'tensor'
+  expect(Kind::l_square, DiagID::ExpectedTensorOpen);
+  llvm::SmallVector<NodeIndex, 8> Children;
+  {
+    const llvm::SaveAndRestore<bool> AllowStructLit(StructLitAllowed, true);
+    // Parse value(s) — comma-separated until ';'
+    Children.push_back(parseExpr(0));
+    while (consume(Kind::comma)) {
+      if (check(Kind::semi) || check(Kind::r_square))
+        break; // trailing comma guard
+      Children.push_back(parseExpr(0));
+    }
+  }
+  const auto NumValues = static_cast<uint16_t>(Children.size());
+  expect(Kind::semi, DiagID::ExpectedTensorLitSemi);
+  // Parse dims (comma-separated const exprs)
+  parseCommaSeparated(Children, Kind::r_square,
+                      [this] { return parseConstExpr(); });
+  if (static_cast<uint16_t>(Children.size()) == NumValues)
+    addError(peekToken().TokenSpan, DiagID::ExpectedTensorLitDim);
+  const Span End =
+      expect(Kind::r_square, DiagID::ExpectedTensorLitClose).TokenSpan;
+  return Pool.alloc(NodeKind::TensorLitExpr, Span{Start.Start, End.End},
+                    Children, NodePool::makeOpPayload(NumValues));
+}
+
+NodeIndex Parser::parsePostfixIndex(NodeIndex Lhs) {
+  ETER_DEBUG(llvm::dbgs() << "[" DEBUG_TYPE "] parsePostfixIndex\n");
+  using Kind = lexer::Token::Kind;
+
+  advance(); // consume '['
+  const Span LhsSpan = Pool.spanOf(Lhs);
+
+  // Collect all comma-separated index expressions.
+  // [base, idx0]      → IndexExpr       (array / 1D-tensor single index)
+  // [base, idx0, ...] → TensorIndexExpr (2+ indices for ND tensors)
+  llvm::SmallVector<NodeIndex, 4> Children;
+  Children.push_back(Lhs);
+  {
+    const llvm::SaveAndRestore<bool> AllowStructLit(StructLitAllowed, true);
+    Children.push_back(parseExpr());
+    while (consume(Kind::comma)) {
+      if (check(Kind::r_square))
+        break; // trailing comma
+      Children.push_back(parseExpr());
+    }
+  }
+  const bool IsTensor = Children.size() > 2;
+  const Span Close =
+      expect(Kind::r_square, IsTensor ? DiagID::ExpectedTensorIndexClose
+                                      : DiagID::ExpectedRSquare)
+          .TokenSpan;
+  if (IsTensor)
+    return Pool.alloc(NodeKind::TensorIndexExpr, Span{LhsSpan.Start, Close.End},
+                      Children);
+  return Pool.alloc(NodeKind::IndexExpr, Span{LhsSpan.Start, Close.End},
+                    {Children[0], Children[1]});
 }
 
 int Parser::prefixBindingPower(lexer::Token::Kind K) {
