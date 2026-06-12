@@ -216,6 +216,10 @@ private:
   /// to `name: name`, with a synthesised IdentExpr child).
   NodeIndex parseFieldInit();
 
+  NodeIndex parseArrayLitExpr();
+  NodeIndex parseTensorLitExpr();
+  NodeIndex parsePostfixIndex(NodeIndex Lhs);
+
   /// Infix operator precedence table (Pratt parser).
   ///
   /// Returns {left_bp, right_bp}.  left_bp < right_bp → left-associative;
@@ -259,6 +263,7 @@ private:
   //===----------------------------------------------------------------------===//
 
   NodeIndex parseType();
+  NodeIndex parseTupleType();
   NodeIndex parseNamedType();
   NodeIndex parseArrayType();
   NodeIndex parseTensorType();
