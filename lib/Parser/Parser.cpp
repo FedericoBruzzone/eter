@@ -167,6 +167,11 @@ bool Parser::parsePathSegments(Span &PathSpan) {
   bool IsPath = false;
   while (check(Kind::colon_colon)) {
     advance();
+    // Skip and diagnose redundant consecutive :: (e.g., a::::b)
+    while (check(Kind::colon_colon)) {
+      addError(Stream.peekToken().TokenSpan, DiagID::RedundantPathSeparator);
+      advance();
+    }
     expect(Kind::identifier, DiagID::ExpectedPathSegment);
     PathSpan.End = Stream.previous().TokenSpan.End;
     IsPath = true;
